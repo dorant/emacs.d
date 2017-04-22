@@ -1,0 +1,6 @@
+*~
+*.elc
+auto-save-list
+
+# Ignore downloaded packages
+elpa

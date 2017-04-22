@@ -13,37 +13,43 @@
 (add-to-list 'load-path (expand-file-name "~/bin/rtags/share/emacs/site-lisp/rtags/"))
 (add-to-list 'load-path (expand-file-name "lisp" user-emacs-directory))
 
-(add-to-list 'custom-theme-load-path "~/.emacs.d/themes")
+(add-to-list 'custom-theme-load-path (expand-file-name "themes" user-emacs-directory))
 
 ;; --------------------------------------------------------
 ;; Initiate helpers and modes
 ;; --------------------------------------------------------
 (require 'init-package-handler)         ;; Package handler
-(require 'init-evil-matchit-mode)       ;; %-key handler, jump between matchin tags
-(require 'init-solarized-theme)         ;; Theme
+(require 'init-evil-matchit-mode)       ;; Jump between matching tags
+
+(require 'init-themes)         ;; Theme
+
 
 ;;(require 'init-python-mode)           ;; Python mode
-;(require 'init-flycheck)
-;(require 'init-company)
+(require 'init-flycheck)
+(require 'init-company)
 ;(require 'init-cmake-ide)             ;;
 
-;(use-package irony)
-;(add-hook 'c++-mode-hook 'irony-mode)
-;(add-hook 'c-mode-hook 'irony-mode)
+;;(use-package irony)
+;;(add-hook 'c++-mode-hook 'irony-mode)
+;;(add-hook 'c-mode-hook 'irony-mode)
 
+;; (require 'rtags)
+;; (require 'company-rtags)
 
+;; (setq rtags-completions-enabled t)
+;;  (eval-after-load 'company
+;;    '(add-to-list
+;;     'company-backends 'company-rtags))
+;; (setq rtags-autostart-diagnostics t)
+;; (rtags-enable-standard-keybindings)
 
-(require 'rtags)
-(require 'company-rtags)
-
-(setq rtags-completions-enabled t)
-(eval-after-load 'company
-  '(add-to-list
-    'company-backends 'company-rtags))
-(setq rtags-autostart-diagnostics t)
-(rtags-enable-standard-keybindings)
-
-
+;;;; Speedbar
+;; (add-to-list 'load-path (expand-file-name "lisp/sr-speedbar" user-emacs-directory))
+;; (require 'sr-speedbar)
+;; (setq speedbar-use-images nil)
+;; (sr-speedbar-open)
+;; (with-current-buffer sr-speedbar-buffer-name
+;;   (setq window-size-fixed 'width))
 
 (use-package cmake-mode) ;; CMake color
 
@@ -220,9 +226,3 @@
 ;*********************************************************
 (message "Loading ~/.emacs.d/init.el done")
 ;*********************************************************
-(custom-set-faces
- ;; custom-set-faces was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- )
