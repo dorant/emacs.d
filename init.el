@@ -19,13 +19,19 @@
 ;; Initiate helpers and modes
 ;; --------------------------------------------------------
 (require 'init-package-handler)         ;; Package handler
-(require 'init-evil-matchit-mode)       ;; Jump between matching tags
+(require 'init-evil-matchit-mode)       ;; Jump between matching tagsc
 
 (require 'init-themes)         ;; Theme
 
 
+(require 'init-plantuml)
+(defun white-background ()
+  (interactive)
+  (setq buffer-face-mode-face `(:background "white"))
+  (buffer-face-mode 1))
+
 ;;(require 'init-python-mode)           ;; Python mode
-(require 'init-flycheck)
+;;(require 'init-flycheck)
 (require 'init-company)
 ;(require 'init-cmake-ide)             ;;
 
