@@ -128,12 +128,12 @@
 ;; Allow access from emacsclient
 ;;----------------------------------------------------------------------------
 (use-package server
-  :defer t
+  :ensure t
+  :init
+  (server-mode 1)
   :config
-  (progn
-    (unless (server-running-p)
-      (server-start))))
-
+  (unless (server-running-p)
+    (server-start)))
 
 ;;----------------------------------------------------------------------------
 ;; Move to emacs-utils
@@ -221,6 +221,8 @@
  '(line-number-mode t)
  '(show-trailing-whitespace t)
  '(tool-bar-mode nil))
+
+(set-face-attribute 'default nil :height 100)
 
 (setq initial-scratch-message "")  ;; Empty scratch-buffer message
 (setq inhibit-startup-message t)   ;; No welcome screen
