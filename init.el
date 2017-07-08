@@ -155,8 +155,16 @@
   "List all buffers in split-screen and move to buffer-list"
   (interactive)
   (list-buffers)
-  (other-window 1)
+  (if (not (string-equal "*Buffer List*" (buffer-name)))
+      (other-window 1)
+    )
 )
+
+(defun dos-to-unix ()
+        "Convert a DOS buffer to unix format."
+        (interactive)
+        (beginning-of-buffer)
+        (replace-string "\r\n" "\n"))
 
 ;;----------------------------------------------------------------------------
 ;; Key setup
