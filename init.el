@@ -41,7 +41,11 @@
 
 ;; Functions for moving buffers relative its position
 (use-package move-border
-  :load-path "lisp/")
+  :load-path "lisp/"
+  :bind (([(meta up)]       . move-border-up)
+         ([(meta down)]     . move-border-down)
+         ([(meta left)]     . move-border-left)
+         ([(meta right)]    . move-border-right)))
 
 ;; Completion
 (use-package company
@@ -125,6 +129,13 @@
 ;;  )
 
 
+(defun my-find-symbol ()
+  (interactive)
+  (or (and (require 'rtags nil t)
+           (rtags-find-symbol-at-point))
+      (and (message (format "find-tag '%s'" (point) ))
+           (find-tag (point))))
+  )
 
 (use-package rtags
   :load-path "~/bin/rtags/share/emacs/site-lisp/rtags/"
@@ -159,7 +170,9 @@
 
 ;; Git
 (use-package magit
-  :ensure t)
+  :ensure t
+  :bind ("\C-xg" . magit-status))
+
 
 (load "c_mode_setup")
 
@@ -476,13 +489,6 @@
 (global-set-key [(home)]          'beginning-of-buffer)
 (global-set-key [(end)]           'end-of-buffer)
 
-(global-set-key "\C-xg"           'magit-status)
-
-(global-set-key [(meta up)]       'move-border-up)
-(global-set-key [(meta down)]     'move-border-down)
-(global-set-key [(meta left)]     'move-border-left)
-(global-set-key [(meta right)]    'move-border-right)
-
 ;;----------------------------------------------------------------------------
 ;; Custom settings
 ;;----------------------------------------------------------------------------
@@ -513,9 +519,3 @@
 ;*********************************************************
 (message "Loading ~/.emacs.d/init.el done")
 ;*********************************************************
-(custom-set-faces
- ;; custom-set-faces was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- )
