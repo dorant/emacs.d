@@ -1,60 +1,145 @@
-;*********************************************************
-;
-; Description
-;  Setup file for emacs
-;
-; See
-; https://github.com/tdd11235813/emacs_config/blob/master/lisp/init/init_cpp.el#L81
-;*********************************************************
+;;*********************************************************
+;;
+;; Description
+;;  Setup file for emacs
+;;
+;; See
+;; https://github.com/tdd11235813/emacs_config/blob/master/lisp/init/init_cpp.el#L81
+;;*********************************************************
 (message "Loading ~/.emacs.d/init.el ...")
-;*********************************************************
+;;*********************************************************
 
-; Own init- packages
-(add-to-list 'load-path (expand-file-name "~/bin/rtags/share/emacs/site-lisp/rtags/"))
-(add-to-list 'load-path (expand-file-name "lisp" user-emacs-directory))
+;; --------------------------------------------------------
+;; Package handling
+;; --------------------------------------------------------
+(require 'package)
+(setq package-enable-at-startup nil)
+(add-to-list 'package-archives
+             '("melpa" . "https://melpa.org/packages/"))
+(package-initialize)
 
-(add-to-list 'custom-theme-load-path (expand-file-name "themes" user-emacs-directory))
+;; Setup: use-package
+(setq use-package-verbose t)
+(eval-when-compile
+  (require 'use-package))
+(require 'bind-key)
 
 ;; --------------------------------------------------------
 ;; Initiate helpers and modes
 ;; --------------------------------------------------------
-(require 'init-package-handler)         ;; Package handler
-(require 'init-evil-matchit-mode)       ;; Jump between matching tags
 
-(require 'init-themes)         ;; Themes and powerline
+;; Themes and powerline
+(use-package init-themes
+  :load-path "lisp/")
 
-(require 'move-border)         ;; Functions for moving buffers relative its position
+;; Jump between matching tags
+(use-package evil-matchit
+  :ensure t
+  :bind ("C-%" . evilmi-jump-items)
+  :config
+  (global-evil-matchit-mode 1))
 
-(require 'init-plantuml)
+;; Functions for moving buffers relative its position
+(use-package move-border
+  :load-path "lisp/")
 
-(defun white-background ()
-  (interactive)
-  (setq buffer-face-mode-face `(:background "white"))
-  (buffer-face-mode 1))
+;; Completion
+(use-package company
+  :ensure t
+  :bind ([C-tab] . company-complete)
+  :init
+  (add-hook 'after-init-hook 'global-company-mode)
+  :config
+  (setq company-tooltip-limit 15
+        company-idle-delay nil
+        company-show-numbers t
+        ;;company-echo-delay 0)
+	)
+
+  ;; Sort in previously used order
+  (use-package company-statistics
+    :ensure t
+    :config
+    (add-hook 'after-init-hook 'company-statistics-mode))
+  ;; Add help window
+  (use-package company-quickhelp
+    :ensure t
+    :if window-system
+    :config
+    (company-quickhelp-mode)
+    (setq company-quickhelp-delay 0.6))
+  ;; Fuzzy matching
+  (use-package company-flx
+    :ensure t
+    :config
+    (company-flx-mode t))
+)
+
+;; Find File At Point
+(use-package ffap
+  :config
+  (ffap-bindings) ; Default key bindings
+  )
+
+;; Proposals in minibuffer
+(use-package ido
+  :ensure t
+  :bind ([remap find-file-at-point] . ido-find-file)
+  :config
+  (setq ido-enable-flex-matching t
+        ido-everywhere t
+        ido-auto-merge-work-directories-length nil
+        ido-use-filename-at-point 'guess
+        ido-use-url-at-point t
+        ffap-require-prefix t)
+  (ido-mode 1)
+  )
+
+;; M-x enhancement that uses ido
+(use-package smex
+  :ensure t
+  :config (smex-initialize)
+  :bind ("M-x" . smex))
+
 
 ;;(require 'init-python-mode)           ;; Python mode
 ;;(require 'init-flycheck)
-(require 'init-company)
-;(require 'init-cmake-ide)             ;;
-
-(require 'whitespace)
-;;(setq whitespace-style '(tabs tab-mark)) ;turns on white space mode only for tabs
-(global-whitespace-mode 0)
 
 
-;;(use-package irony)
-;;(add-hook 'c++-mode-hook 'irony-mode)
-;;(add-hook 'c-mode-hook 'irony-mode)
+;; /tmp/build-irony-server-1.0.0
+;; cmake -DCMAKE_INSTALL_PREFIX\=/home/qbjsven/.emacs.d/irony/ -DLIBCLANG_LIBRARY=/proj/epg-tools/clang/3.9.1.rhel6/lib/libclang.so -DLIBCLANG_INCLUDE_DIR=/proj/epg-tools/clang/3.9.1.rhel6/include /home/qbjsven/.emacs.d/elpa/irony-20170725.1249/server && cmake --build . --use-stderr --config Release --target install
 
-(require 'rtags)
-;; (require 'company-rtags)
+;; irony-install-server add:
+;; -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=ON -DLIBCLANG_LIBRARY=/proj/epg-tools/clang/3.9.1.rhel6/lib/libclang.so -DLIBCLANG_INCLUDE_DIR=/proj/epg-tools/clang/3.9.1.rhel6/include
 
-;; (setq rtags-completions-enabled t)
-;;  (eval-after-load 'company
-;;    '(add-to-list
-;;     'company-backends 'company-rtags))
-;; (setq rtags-autostart-diagnostics t)
-;; (rtags-enable-standard-keybindings)
+;;(use-package irony
+;;  :ensure t
+;;  :config
+;;  (use-package company-irony
+;;    :ensure t
+;;    :config
+;;    (add-to-list 'company-backends 'company-irony))
+;;  (add-hook 'c++-mode-hook 'irony-mode)
+;;  (add-hook 'c-mode-hook 'irony-mode)
+;;  (add-hook 'irony-mode-hook 'irony-cdb-autosetup-compile-options)
+;;  )
+
+
+
+(use-package rtags
+  :load-path "~/bin/rtags/share/emacs/site-lisp/rtags/"
+  :config
+  (setq rtags-autostart-diagnostics t
+        rtags-completions-enabled t)
+  (rtags-enable-standard-keybindings)
+;;  (add-to-list 'company-backends 'company-rtags)
+;;  (add-hook 'c-mode-common-hook 'rtags-start-process-unless-running))
+
+  (define-key c-mode-base-map (kbd "M-.")
+     (function rtags-find-symbol-at-point))
+  (define-key c-mode-base-map (kbd "M-,")
+     (function rtags-find-references-at-point))
+)
 
 ;;;; Speedbar
 ;; (add-to-list 'load-path (expand-file-name "lisp/sr-speedbar" user-emacs-directory))
@@ -64,25 +149,39 @@
 ;; (with-current-buffer sr-speedbar-buffer-name
 ;;   (setq window-size-fixed 'width))
 
-(use-package cmake-mode) ;; CMake color
+;;(use-package cmake-ide)
+;;(require 'rtags)
+;;(cmake-ide-setup)
 
-;(use-package irony)
+;; CMake color
+(use-package cmake-mode
+  :ensure t)
+
+;; Git
+(use-package magit
+  :ensure t)
 
 (load "c_mode_setup")
+
+
 (load "plantuml")
 
-;; GIT
-(use-package magit)
-
-
-(require 'ffap)  ; Find File At Point
-(ffap-bindings)  ; Dxefault key bindings
+(use-package plantuml-mode
+  :ensure t
+  :mode ("\\.p\\(lant\\)?uml\\'" . plantuml-mode)
+  :config (progn
+            (setq plantuml-jar-path (expand-file-name "~/bin/plantuml.jar"))
+            (setq plantuml-output-type "png")
+            ;(setq plantuml-output-type "utxt")
+            (unless (file-exists-p plantuml-jar-path)
+              (alert (format "plantuml not found at %s" plantuml-jar-path)))))
 
 
 ; --------------------------------------------------------
 ; Syntax highlighting support for "Modern C++" - until C++17
 ; --------------------------------------------------------
 (use-package modern-cpp-font-lock
+  :ensure t
   :config
   (add-hook 'c++-mode-hook #'modern-c++-font-lock-mode)
   (add-hook 'c-mode-hook   #'modern-c++-font-lock-mode)
@@ -102,6 +201,17 @@
   (autoload 'ansi-color-for-comint-mode-on "ansi-color" nil t)
   (add-hook 'shell-mode-hook 'ansi-color-for-comint-mode-on)
   )
+
+;;----------------------------------------------------------------------------
+;; Allow access from emacsclient
+;;----------------------------------------------------------------------------
+(use-package server
+  :ensure t
+  :init
+  (server-mode 1)
+  :config
+  (unless (server-running-p)
+    (server-start)))
 
 ;; Avoid break in shell
 (setenv "PAGER" "cat")
@@ -130,19 +240,9 @@
 ; --------------------------------------------------------
 (setq tags-file-name "~/tmp/TAGS")
 
-;;----------------------------------------------------------------------------
-;; Allow access from emacsclient
-;;----------------------------------------------------------------------------
-(use-package server
-  :ensure t
-  :init
-  (server-mode 1)
-  :config
-  (unless (server-running-p)
-    (server-start)))
 
 ;;----------------------------------------------------------------------------
-;; Move to emacs-utils
+;; Utilities
 ;;----------------------------------------------------------------------------
 (defun match-bracket (arg)
   "Go to the matching bracket if on bracket, otherwise insert %."
@@ -366,7 +466,6 @@
 (global-set-key [(shift f10)]     'revert-buffer)            ; Refresh the buffer contents from file
 
 (global-set-key "%"               'match-bracket)        ; Jump between scopes, simple (or just writing '%')
-(global-set-key [(control ?5)]    'evilmi-jump-items)    ; Jump between scopes, fuller
 
 (global-set-key [(meta +)]        'file-note-jump)           ; Jump to file:row
 (global-set-key [(meta k)]        'copy-word)                ; Copy word to killbuffer and xclipboard
@@ -414,3 +513,9 @@
 ;*********************************************************
 (message "Loading ~/.emacs.d/init.el done")
 ;*********************************************************
+(custom-set-faces
+ ;; custom-set-faces was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ )

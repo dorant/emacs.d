@@ -1,3 +1,5 @@
+(add-to-list 'custom-theme-load-path (expand-file-name "themes/emacs-color-theme-solarized" user-emacs-directory))
+
 (load-theme 'solarized t)  ; Load without confirm
 
 ;; Solarized dark theme
@@ -13,8 +15,9 @@
 ;;
 ;; Updated with
 ;; https://github.com/milkypostman/powerline/issues/101
-(add-to-list 'load-path (expand-file-name "lisp/powerline" user-emacs-directory))
-(require 'powerline)
+(use-package powerline
+  :load-path "lisp/powerline")
+
 (setq powerline-default-separator 'slant)
 (setq powerline-display-buffer-size nil)
 (setq powerline-display-mule-info nil)
