@@ -2,9 +2,10 @@
 
 (load-theme 'solarized t)  ; Load without confirm
 
-;; Solarized dark theme
 (custom-set-variables
- '(frame-background-mode (quote dark)))
+ '(frame-background-mode (quote dark)) ;; Solarized dark theme
+ '(solarized-termcolors 256)
+ )
 (enable-theme 'solarized)
 
 
