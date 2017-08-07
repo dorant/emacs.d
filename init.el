@@ -203,8 +203,6 @@
 (load "c_mode_setup")
 
 
-(load "plantuml")
-
 (use-package plantuml-mode
   :ensure t
   :mode ("\\.p\\(lant\\)?uml\\'" . plantuml-mode)
