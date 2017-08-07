@@ -3,8 +3,6 @@
 ;; Description
 ;;  Setup file for emacs
 ;;
-;; See
-;; https://github.com/tdd11235813/emacs_config/blob/master/lisp/init/init_cpp.el#L81
 ;;*********************************************************
 (message "Loading ~/.emacs.d/init.el ...")
 ;;*********************************************************
@@ -24,11 +22,12 @@
   (require 'use-package))
 (require 'bind-key)
 
+
 ;; --------------------------------------------------------
 ;; Initiate helpers and modes
 ;; --------------------------------------------------------
 
-;; Themes and powerline
+;; Themes and powerline (i.e. infobar)
 (use-package init-themes
   :load-path "lisp/")
 
@@ -47,6 +46,89 @@
          ([(meta left)]     . move-border-left)
          ([(meta right)]    . move-border-right)))
 
+
+;; Find File At Point
+(use-package ffap
+  :config
+  (ffap-bindings) ; Default key bindings
+  )
+
+;; Proposals in minibuffer
+(use-package ido
+  :ensure t
+  :config
+  (setq ido-enable-flex-matching t
+        ido-everywhere t
+        ido-auto-merge-work-directories-length nil
+        ido-use-filename-at-point 'guess
+        ido-use-url-at-point t
+        ffap-require-prefix t)
+  (ido-mode 1)
+  )
+
+;; M-x enhancement that uses ido
+(use-package smex
+  :ensure t
+  :config (smex-initialize)
+  :bind ("M-x" . smex))
+
+
+;; NOT READY: Find using rtags, or else tags
+(defun my-find-symbol (next-p)
+  (interactive "P")
+  (or (and (require 'rtags nil t)
+           (rtags-find-symbol-at-point))
+      (and (progn (setq tag (symbol-name (symbol-at-point)))
+                  (message (format "Could not find using rtags, attempt tags for finding '%s'" tag))
+                  )
+           (condition-case nil
+               (find-tag tag next-p)
+             (error nil)))
+      )
+  )
+
+
+(use-package rtags
+  :load-path "~/bin/rtags/share/emacs/site-lisp/rtags/"
+  :config
+  (setq rtags-autostart-diagnostics t
+        rtags-completions-enabled t)
+  (rtags-enable-standard-keybindings)
+;;  (add-to-list 'company-backends 'company-rtags)
+;;  (add-hook 'c-mode-common-hook 'rtags-start-process-unless-running))
+
+  (define-key c-mode-base-map (kbd "M-.")
+     (function rtags-find-symbol-at-point))
+  (define-key c-mode-base-map (kbd "M-,")
+     (function rtags-find-references-at-point))
+  (define-key c-mode-base-map (kbd "M-*")
+     (function rtags-location-stack-back))
+  (define-key c-mode-base-map (kbd "M-/")
+     (function rtags-find-all-references-at-point))
+)
+
+;;(require 'init-python-mode)           ;; Python mode
+
+;;(require 'init-flycheck)
+
+
+(use-package irony
+  :ensure t
+  :init
+  (add-hook 'c++-mode-hook 'irony-mode)
+  (add-hook 'c-mode-hook 'irony-mode)
+  :config
+  ;; replace the `completion-at-point' and `complete-symbol' bindings in
+  ;; irony-mode's buffers by irony-mode's function
+  (defun my-irony-mode-hook ()
+    (define-key irony-mode-map [remap completion-at-point]
+      'irony-completion-at-point-async)
+    (define-key irony-mode-map [remap complete-symbol]
+      'irony-completion-at-point-async))
+  (add-hook 'irony-mode-hook 'my-irony-mode-hook)
+  ;;(add-hook 'irony-mode-hook 'irony-cdb-autosetup-compile-options)
+  )
+
 ;; Completion
 (use-package company
   :ensure t
@@ -54,10 +136,12 @@
   :init
   (add-hook 'after-init-hook 'global-company-mode)
   :config
-  (setq company-tooltip-limit 15
-        company-idle-delay nil
+  (setq company-idle-delay nil
+        company-minimum-prefix-length 2
         company-show-numbers t
-        ;;company-echo-delay 0)
+        company-tooltip-limit 15
+        company-dabbrev-downcase nil
+        company-backends '((company-irony))
 	)
 
   ;; Sort in previously used order
@@ -79,90 +163,6 @@
     (company-flx-mode t))
 )
 
-;; Find File At Point
-(use-package ffap
-  :config
-  (ffap-bindings) ; Default key bindings
-  )
-
-;; Proposals in minibuffer
-(use-package ido
-  :ensure t
-  :bind ([remap find-file-at-point] . ido-find-file)
-  :config
-  (setq ido-enable-flex-matching t
-        ido-everywhere t
-        ido-auto-merge-work-directories-length nil
-        ido-use-filename-at-point 'guess
-        ido-use-url-at-point t
-        ffap-require-prefix t)
-  (ido-mode 1)
-  )
-
-;; M-x enhancement that uses ido
-(use-package smex
-  :ensure t
-  :config (smex-initialize)
-  :bind ("M-x" . smex))
-
-
-;;(require 'init-python-mode)           ;; Python mode
-;;(require 'init-flycheck)
-
-
-;; /tmp/build-irony-server-1.0.0
-;; cmake -DCMAKE_INSTALL_PREFIX\=/home/qbjsven/.emacs.d/irony/ -DLIBCLANG_LIBRARY=/proj/epg-tools/clang/3.9.1.rhel6/lib/libclang.so -DLIBCLANG_INCLUDE_DIR=/proj/epg-tools/clang/3.9.1.rhel6/include /home/qbjsven/.emacs.d/elpa/irony-20170725.1249/server && cmake --build . --use-stderr --config Release --target install
-
-;; irony-install-server add:
-;; -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=ON -DLIBCLANG_LIBRARY=/proj/epg-tools/clang/3.9.1.rhel6/lib/libclang.so -DLIBCLANG_INCLUDE_DIR=/proj/epg-tools/clang/3.9.1.rhel6/include
-
-;;(use-package irony
-;;  :ensure t
-;;  :config
-;;  (use-package company-irony
-;;    :ensure t
-;;    :config
-;;    (add-to-list 'company-backends 'company-irony))
-;;  (add-hook 'c++-mode-hook 'irony-mode)
-;;  (add-hook 'c-mode-hook 'irony-mode)
-;;  (add-hook 'irony-mode-hook 'irony-cdb-autosetup-compile-options)
-;;  )
-
-
-(defun my-find-symbol ()
-  (interactive)
-  (or (and (require 'rtags nil t)
-           (rtags-find-symbol-at-point))
-      (and (message (format "find-tag '%s'" (point) ))
-           (find-tag (point))))
-  )
-
-(use-package rtags
-  :load-path "~/bin/rtags/share/emacs/site-lisp/rtags/"
-  :config
-  (setq rtags-autostart-diagnostics t
-        rtags-completions-enabled t)
-  (rtags-enable-standard-keybindings)
-;;  (add-to-list 'company-backends 'company-rtags)
-;;  (add-hook 'c-mode-common-hook 'rtags-start-process-unless-running))
-
-  (define-key c-mode-base-map (kbd "M-.")
-     (function rtags-find-symbol-at-point))
-  (define-key c-mode-base-map (kbd "M-,")
-     (function rtags-find-references-at-point))
-)
-
-;;;; Speedbar
-;; (add-to-list 'load-path (expand-file-name "lisp/sr-speedbar" user-emacs-directory))
-;; (require 'sr-speedbar)
-;; (setq speedbar-use-images nil)
-;; (sr-speedbar-open)
-;; (with-current-buffer sr-speedbar-buffer-name
-;;   (setq window-size-fixed 'width))
-
-;;(use-package cmake-ide)
-;;(require 'rtags)
-;;(cmake-ide-setup)
 
 ;; CMake color
 (use-package cmake-mode
@@ -196,8 +196,8 @@
 (use-package modern-cpp-font-lock
   :ensure t
   :config
-  (add-hook 'c++-mode-hook #'modern-c++-font-lock-mode)
-  (add-hook 'c-mode-hook   #'modern-c++-font-lock-mode)
+  (add-hook 'c++-mode-hook 'modern-c++-font-lock-mode)
+  (add-hook 'c-mode-hook   'modern-c++-font-lock-mode)
   )
 
 ; --------------------------------------------------------
@@ -220,6 +220,7 @@
 ;;----------------------------------------------------------------------------
 (use-package server
   :ensure t
+  :demand
   :init
   (server-mode 1)
   :config
@@ -268,14 +269,6 @@
         ((looking-at "\\s\]") (forward-char 1) (backward-list 1))
         (t (self-insert-command (or arg 1)))
   )
-)
-
-(defun list-buffers-same-window ()
-  "List all buffers in split-screen and move to buffer-list"
-  (interactive)
-  (list-buffers)
-  (while (not (string-equal "*Buffer List*" (buffer-name)))
-    (other-window 1))
 )
 
 (defun dos-to-unix ()
@@ -472,13 +465,12 @@
 (global-set-key [(f3)]            'comment-region)           ; Comment a market region
 (global-set-key [(shift f3)]      'uncomment-region)         ; Uncomment a market region
 (global-set-key [(f4)]            'next-error)               ; Next error in a compiler result
-;;(global-set-key [(f8)]            'list-buffers-same-window) ; List all buffers in a window
 (global-set-key [(f8)]            'buffer-menu-other-window) ; List all buffers in a window
 (global-set-key [(shift f8)]      'shell-jump)               ; Open or jump to shell buffer
 (global-set-key [(f10)]           'ff-get-other-file)        ; Get corresponding .cc or .hh file
 (global-set-key [(shift f10)]     'revert-buffer)            ; Refresh the buffer contents from file
 
-(global-set-key "%"               'match-bracket)        ; Jump between scopes, simple (or just writing '%')
+(global-set-key "%"               'match-bracket)            ; Jump between scopes, simple (or just writing '%')
 
 (global-set-key [(meta +)]        'file-note-jump)           ; Jump to file:row
 (global-set-key [(meta k)]        'copy-word)                ; Copy word to killbuffer and xclipboard
@@ -507,6 +499,15 @@
  '(show-trailing-whitespace t)
  '(tool-bar-mode nil))
 
+(custom-set-faces
+ ;; custom-set-faces was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ )
+;;*********************************************************
+
+
 (set-face-attribute 'default nil :height 100)
 
 (setq initial-scratch-message "")  ;; Empty scratch-buffer message
@@ -516,6 +517,6 @@
 (add-to-list 'default-frame-alist '(height . 55))
 (add-to-list 'default-frame-alist '(width . 220))
 
-;*********************************************************
+;;*********************************************************
 (message "Loading ~/.emacs.d/init.el done")
-;*********************************************************
+;;*********************************************************
