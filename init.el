@@ -10,17 +10,25 @@
 ;; --------------------------------------------------------
 ;; Package handling
 ;; --------------------------------------------------------
-(require 'package)
-(setq package-enable-at-startup nil)
-(add-to-list 'package-archives
-             '("melpa" . "https://melpa.org/packages/"))
-(package-initialize)
 
-;; Setup: use-package
-(setq use-package-verbose t)
-(eval-when-compile
-  (require 'use-package))
-(require 'bind-key)
+(if (locate-library "package")
+    (eval-and-compile
+      (setq package-enable-at-startup nil
+            package-archives '(("melpa-stable" . "https://stable.melpa.org/packages/")
+                               ("melpa"        . "https://melpa.org/packages/")
+                               ("gnu"          . "https://elpa.gnu.org/packages/"))
+            use-package-always-pin "melpa-stable"
+            use-package-verbose t)
+      (require 'package)
+      (package-initialize)
+      (unless (package-installed-p 'use-package)
+        (unless (assoc 'use-package package-archive-contents)
+          (package-refresh-contents))
+        (package-install 'use-package))
+      (require 'use-package))
+  (message "WARNING: Ancient emacs! No advice-add, package.el")
+  (defmacro advice-add (&rest body))
+  (defmacro use-package (&rest body)))
 
 
 ;; --------------------------------------------------------
@@ -109,23 +117,40 @@
 
 ;;(require 'init-python-mode)           ;; Python mode
 
-;;(require 'init-flycheck)
+(defun my-flycheck-rtags-hook ()
+  (flycheck-mode)
+  (flycheck-select-checker 'rtags)
+  (setq-local flycheck-check-syntax-automatically nil) ;; Let rtags trigger the check
+  (setq-local flycheck-highlighting-mode nil) ;; Use rtags own overlay/highlighting
+  )
 
+(use-package flycheck
+  :ensure t
+  :init
+  (add-hook 'c++-mode-hook #'my-flycheck-rtags-hook)
+
+  :config
+  (use-package flycheck-rtags
+    :ensure t)
+  )
+
+
+
+(defun my-irony-mode-hook ()
+  (define-key irony-mode-map [remap completion-at-point]
+    'irony-completion-at-point-async)
+  (define-key irony-mode-map [remap complete-symbol]
+    'irony-completion-at-point-async))
 
 (use-package irony
   :ensure t
   :init
-  (add-hook 'c++-mode-hook 'irony-mode)
-  (add-hook 'c-mode-hook 'irony-mode)
+  (add-hook 'c++-mode-hook #'irony-mode)
+  (add-hook 'c-mode-hook #'irony-mode)
   :config
   ;; replace the `completion-at-point' and `complete-symbol' bindings in
   ;; irony-mode's buffers by irony-mode's function
-  (defun my-irony-mode-hook ()
-    (define-key irony-mode-map [remap completion-at-point]
-      'irony-completion-at-point-async)
-    (define-key irony-mode-map [remap complete-symbol]
-      'irony-completion-at-point-async))
-  (add-hook 'irony-mode-hook 'my-irony-mode-hook)
+  (add-hook 'irony-mode-hook #'my-irony-mode-hook)
   ;;(add-hook 'irony-mode-hook 'irony-cdb-autosetup-compile-options)
   )
 
@@ -134,21 +159,21 @@
   :ensure t
   :bind ([C-tab] . company-complete)
   :init
-  (add-hook 'after-init-hook 'global-company-mode)
+  (add-hook 'after-init-hook #'global-company-mode)
   :config
   (setq company-idle-delay nil
         company-minimum-prefix-length 2
         company-show-numbers t
         company-tooltip-limit 15
         company-dabbrev-downcase nil
-        company-backends '((company-irony))
+        ;;company-backends '((company-irony))
 	)
 
   ;; Sort in previously used order
   (use-package company-statistics
     :ensure t
     :config
-    (add-hook 'after-init-hook 'company-statistics-mode))
+    (add-hook 'after-init-hook #'company-statistics-mode))
   ;; Add help window
   (use-package company-quickhelp
     :ensure t
@@ -159,6 +184,7 @@
   ;; Fuzzy matching
   (use-package company-flx
     :ensure t
+    :pin melpa
     :config
     (company-flx-mode t))
 )
@@ -196,8 +222,8 @@
 (use-package modern-cpp-font-lock
   :ensure t
   :config
-  (add-hook 'c++-mode-hook 'modern-c++-font-lock-mode)
-  (add-hook 'c-mode-hook   'modern-c++-font-lock-mode)
+  (add-hook 'c++-mode-hook #'modern-c++-font-lock-mode)
+  (add-hook 'c-mode-hook   #'modern-c++-font-lock-mode)
   )
 
 ; --------------------------------------------------------
@@ -210,9 +236,9 @@
     (read-only-mode)
     (ansi-color-apply-on-region (point-min) (point-max))
     (read-only-mode))
-  (add-hook 'compilation-filter-hook 'colorize-compilation-buffer)
+  (add-hook 'compilation-filter-hook #'colorize-compilation-buffer)
   (autoload 'ansi-color-for-comint-mode-on "ansi-color" nil t)
-  (add-hook 'shell-mode-hook 'ansi-color-for-comint-mode-on)
+  (add-hook 'shell-mode-hook #'ansi-color-for-comint-mode-on)
   )
 
 ;;----------------------------------------------------------------------------
