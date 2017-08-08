@@ -220,6 +220,12 @@
     :pin melpa
     :config
     (company-flx-mode t))
+
+  (use-package company-c-headers
+    :ensure t
+    :pin melpa
+    :config
+    (add-to-list 'company-backends 'company-c-headers))
 )
 
 
@@ -604,7 +610,10 @@
  '(indent-tabs-mode nil)
  '(line-number-mode t)
  '(show-trailing-whitespace t)
- '(tool-bar-mode nil))
+ '(tool-bar-mode nil)
+ '(pos-tip-background-color "#073642")
+ '(pos-tip-foreground-color "#93a1a1")
+ )
 
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
