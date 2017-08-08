@@ -31,6 +31,12 @@
   (defmacro use-package (&rest body)))
 
 
+; --------------------------------------------------------
+; etags
+; --------------------------------------------------------
+;;(setq tags-file-name "~/tmp/TAGS")
+(setq tags-table-list "~/tmp/TAGS")
+
 ;; --------------------------------------------------------
 ;; Initiate helpers and modes
 ;; --------------------------------------------------------
@@ -136,44 +142,70 @@
 
 
 
-(defun my-irony-mode-hook ()
-  (define-key irony-mode-map [remap completion-at-point]
-    'irony-completion-at-point-async)
-  (define-key irony-mode-map [remap complete-symbol]
-    'irony-completion-at-point-async))
+;; (defun my-irony-mode-hook ()
+;;   (define-key irony-mode-map [remap completion-at-point]
+;;     'irony-completion-at-point-async)
+;;   (define-key irony-mode-map [remap complete-symbol]
+;;     'irony-completion-at-point-async))
 
-(use-package irony
-  :ensure t
-  :init
-  (add-hook 'c++-mode-hook #'irony-mode)
-  (add-hook 'c-mode-hook #'irony-mode)
-  :config
-  ;; replace the `completion-at-point' and `complete-symbol' bindings in
-  ;; irony-mode's buffers by irony-mode's function
-  (add-hook 'irony-mode-hook #'my-irony-mode-hook)
-  ;;(add-hook 'irony-mode-hook 'irony-cdb-autosetup-compile-options)
-  )
+;; (use-package irony
+;;   :ensure t
+;;   :init
+;;   (add-hook 'c++-mode-hook #'irony-mode)
+;;   (add-hook 'c-mode-hook #'irony-mode)
+;;   :config
+;;   ;; replace the `completion-at-point' and `complete-symbol' bindings in
+;;   ;; irony-mode's buffers by irony-mode's function
+;;   (add-hook 'irony-mode-hook #'my-irony-mode-hook)
+;;   ;;(add-hook 'irony-mode-hook 'irony-cdb-autosetup-compile-options)
+;;   )
 
 ;; Completion
+;; See https://github.com/raxod502/radian/blob/master/radian-emacs/radian-autocomplete.el
 (use-package company
   :ensure t
-  :bind ([C-tab] . company-complete)
-  :init
-  (add-hook 'after-init-hook #'global-company-mode)
+  :demand t
+  :bind (([remap completion-at-point] . company-manual-begin)
+         ([remap complete-symbol] . company-manual-begin)
+
+         ;; Completions menu is visible
+         :map company-active-map
+         ("<tab>" . company-complete-selection)
+         ("TAB" . company-complete-selection)
+         ("SPC" . nil)
+
+         ;; Keybindings that only take effect if explicitly interacted with Company.
+         :map company-active-map
+         :filter (company-explicit-action-p)
+         ("<return>" . company-complete-selection)
+         ("RET" . company-complete-selection)
+         ("<up>" . company-select-previous)
+         ("<down>" . company-select-next))
+
+  :bind* (("M-TAB" . company-manual-begin))
+
   :config
-  (setq company-idle-delay nil
-        company-minimum-prefix-length 2
+  (global-company-mode 1)
+  (setq company-idle-delay 0
+        company-minimum-prefix-length 1
+        company-tooltip-limit 10
+        ;company-tooltip-minimum company-tooltip-limit
+        company-frontends '(company-pseudo-tooltip-frontend)
         company-show-numbers t
-        company-tooltip-limit 15
+        company-require-match #'company-explicit-action-p
+        company-auto-complete-chars nil
         company-dabbrev-downcase nil
-        ;;company-backends '((company-irony))
-	)
+        company-dabbrev-other-buffers nil
+        company-dabbrev-ignore-case nil)
+
+  ;;(add-to-list 'company-backends 'company-rtags)
 
   ;; Sort in previously used order
   (use-package company-statistics
     :ensure t
     :config
     (add-hook 'after-init-hook #'company-statistics-mode))
+
   ;; Add help window
   (use-package company-quickhelp
     :ensure t
@@ -181,6 +213,7 @@
     :config
     (company-quickhelp-mode)
     (setq company-quickhelp-delay 0.6))
+
   ;; Fuzzy matching
   (use-package company-flx
     :ensure t
@@ -327,10 +360,6 @@
 (defvar make-program "gmake -f ~/Makefile"
    "Default program to run at `make'.")
 
-; --------------------------------------------------------
-; TAGS
-; --------------------------------------------------------
-(setq tags-file-name "~/tmp/TAGS")
 
 
 ;;----------------------------------------------------------------------------
