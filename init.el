@@ -7,6 +7,20 @@
 (message "Loading ~/.emacs.d/init.el ...")
 ;;*********************************************************
 
+;; Speed improvements
+;; While the minibuffer is open, garbage collection will never occur (default when 800000 is allocated)
+;; http://bling.github.io/blog/2016/01/18/why-are-you-changing-gc-cons-threshold/
+(defun my-minibuffer-setup-hook ()
+  (setq gc-cons-threshold most-positive-fixnum))
+
+(defun my-minibuffer-exit-hook ()
+  (setq gc-cons-threshold 800000)) ;; Back to default
+
+(add-hook 'minibuffer-setup-hook #'my-minibuffer-setup-hook)
+(add-hook 'minibuffer-exit-hook #'my-minibuffer-exit-hook)
+(add-hook 'focus-out-hook 'garbage-collect) ;; Garbage collect when temporary leaving Emacs
+
+
 ;; --------------------------------------------------------
 ;; Package handling
 ;; --------------------------------------------------------
@@ -86,6 +100,48 @@
   :config (smex-initialize)
   :bind ("M-x" . smex))
 
+(use-package ivy
+  :ensure t
+  :diminish ivy-mode
+  :bind
+  (:map ivy-mode-map
+        ("C-'" . ivy-avy))
+  :config
+  (ivy-mode 1)
+  (setq ivy-use-virtual-buffers  t    ;; add ‘recentf-mode’ and bookmarks to ‘ivy-switch-buffer’.
+        ivy-height               10   ;; number of result lines to display
+        ivy-initial-inputs-alist nil  ;; no regexp by default
+        ivy-re-builders-alist    '((t . ivy--regex-ignore-order)))) ;; configure regexp engine:  allow input not in order
+
+(use-package counsel
+  :ensure t
+  :bind*                           ; load counsel when pressed
+  (("M-x"     . counsel-M-x)       ; M-x use counsel
+   ("C-x C-f" . counsel-find-file) ; C-x C-f use counsel-find-file
+   ("C-x C-r" . counsel-recentf)   ; search recently edited files
+   ("C-c f"   . counsel-git)       ; search for files in git repo
+   ("C-c s"   . counsel-git-grep)  ; search for regexp in git repo
+   ("C-c /"   . counsel-ag)        ; search for regexp in git repo using ag
+   ("C-c l"   . counsel-locate))   ; search for files or else using locate
+  )
+
+;; isearch replacer
+(use-package swiper
+  :ensure t
+  :bind
+  ("C-s" . swiper))
+
+;; Emacs package that displays available keybindings in minibuffer
+(use-package which-key
+  :ensure t
+  :diminish which-key-mode
+  :init
+  (which-key-mode)
+  :config
+  (setq which-key-popup-type 'minibuffer
+        which-key-sort-order 'which-key-key-order-alpha
+        which-key-idle-delay 1.00))
+
 
 ;; NOT READY: Find using rtags, or else tags
 (defun my-find-symbol (next-p)
@@ -141,6 +197,24 @@
   )
 
 
+;; Hide minor modes from the mode bar.
+;;(use-package diminish
+;;  :ensure t)
+
+(use-package projectile
+  :ensure t
+  :config
+  (projectile-global-mode)
+  (setq projectile-indexing-method       'alien            ;; make sure git is used
+        projectile-completion-system     'ivy
+        projectile-switch-project-action 'projectile-dired ;; Change root dir
+        projectile-enable-caching        t))
+
+(use-package counsel-projectile
+  :ensure t
+  :pin melpa)
+;;  :config
+;;  (counsel-projectile))
 
 ;; (defun my-irony-mode-hook ()
 ;;   (define-key irony-mode-map [remap completion-at-point]
@@ -198,7 +272,7 @@
         company-dabbrev-other-buffers nil
         company-dabbrev-ignore-case nil)
 
-  ;;(add-to-list 'company-backends 'company-rtags)
+  (add-to-list 'company-backends 'company-rtags)
 
   ;; Sort in previously used order
   (use-package company-statistics
@@ -578,7 +652,7 @@
 (global-set-key [(f3)]            'comment-region)           ; Comment a market region
 (global-set-key [(shift f3)]      'uncomment-region)         ; Uncomment a market region
 (global-set-key [(f4)]            'next-error)               ; Next error in a compiler result
-(global-set-key [(f8)]            'buffer-menu-other-window) ; List all buffers in a window
+(global-set-key [(f8)]            'ivy-switch-buffer)        ;;  'buffer-menu-other-window) ; List all buffers in a window
 (global-set-key [(shift f8)]      'shell-jump)               ; Open or jump to shell buffer
 (global-set-key [(f10)]           'ff-get-other-file)        ; Get corresponding .cc or .hh file
 (global-set-key [(shift f10)]     'revert-buffer)            ; Refresh the buffer contents from file
@@ -593,6 +667,13 @@
 
 (global-set-key [(home)]          'beginning-of-buffer)
 (global-set-key [(end)]           'end-of-buffer)
+
+;; Show trailing space for code
+(add-hook 'c++-mode-hook (lambda () (setq show-trailing-whitespace t)))
+(add-hook 'c-mode-hook (lambda () (setq show-trailing-whitespace t)))
+(add-hook 'makefile-mode-hook (lambda () (setq show-trailing-whitespace t)))
+(add-hook 'cmake-mode-hook (lambda () (setq show-trailing-whitespace t)))
+(add-hook 'python-mode-hook (lambda () (setq show-trailing-whitespace t)))
 
 ;;----------------------------------------------------------------------------
 ;; Custom settings
@@ -609,7 +690,6 @@
  '(compilation-skip-threshold 2)
  '(indent-tabs-mode nil)
  '(line-number-mode t)
- '(show-trailing-whitespace t)
  '(tool-bar-mode nil)
  '(pos-tip-background-color "#073642")
  '(pos-tip-foreground-color "#93a1a1")
