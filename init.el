@@ -80,6 +80,17 @@
   :config (smex-initialize)
   :bind ("M-x" . smex))
 
+;; Docker
+(use-package docker
+  :ensure t
+  :pin melpa
+  :config
+  (docker-global-mode))
+
+(use-package dockerfile-mode
+  :ensure t
+  :mode "Dockerfile.*\\'")
+
 
 ;; NOT READY: Find using rtags, or else tags
 (defun my-find-symbol (next-p)
@@ -259,7 +270,7 @@
 
 (use-package plantuml-mode
   :ensure t
-  :mode ("\\.p\\(lant\\)?uml\\'" . plantuml-mode)
+  :mode ("\\.p\\(lant\\)?uml\\'")
   :config (progn
             (setq plantuml-jar-path (expand-file-name "~/bin/plantuml.jar"))
             (setq plantuml-output-type "png")
@@ -586,7 +597,7 @@
 ;;*********************************************************
 
 
-(set-face-attribute 'default nil :height 100)
+;;(set-face-attribute 'default nil :height 100)
 
 (setq initial-scratch-message "")  ;; Empty scratch-buffer message
 (setq inhibit-startup-message t)   ;; No welcome screen
