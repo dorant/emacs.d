@@ -80,6 +80,13 @@
   :config (smex-initialize)
   :bind ("M-x" . smex))
 
+(use-package tramp
+  :ensure t
+  :config
+  (setq tramp-default-method "ssh"))
+;;        trap-verbose 9
+;;        tramp-ssh-controlmaster-options
+
 ;; Docker
 (use-package docker
   :ensure t
@@ -90,6 +97,10 @@
 (use-package dockerfile-mode
   :ensure t
   :mode "Dockerfile.*\\'")
+
+(use-package docker-tramp
+  :ensure t)
+
 
 
 ;; NOT READY: Find using rtags, or else tags
