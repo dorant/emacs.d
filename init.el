@@ -58,8 +58,7 @@
 ;; Find File At Point
 (use-package ffap
   :config
-  (ffap-bindings) ; Default key bindings
-  )
+  (ffap-bindings)) ; Default key bindings
 
 ;; Proposals in minibuffer
 (use-package ido
@@ -71,8 +70,7 @@
         ido-use-filename-at-point 'guess
         ido-use-url-at-point t
         ffap-require-prefix t)
-  (ido-mode 1)
-  )
+  (ido-mode 1))
 
 ;; M-x enhancement that uses ido
 (use-package smex
@@ -102,6 +100,9 @@
   :ensure t)
 
 
+(use-package markdown-mode
+  :ensure t
+  :mode ("\\.m\\(ark\\)?d\\(own\\)?\\'"))
 
 ;; NOT READY: Find using rtags, or else tags
 (defun my-find-symbol (next-p)
@@ -221,6 +222,8 @@
   :ensure t
   :bind ("\C-xg" . magit-status))
 
+(use-package magit-gerrit
+  :ensure t)
 
 ;; Define the coding style
 (defconst my-cc-style
@@ -616,6 +619,9 @@
 ;; Change startup screen size
 (add-to-list 'default-frame-alist '(height . 55))
 (add-to-list 'default-frame-alist '(width . 220))
+
+(when (file-exists-p "~/.emacs.local.el")
+  (load "~/.emacs.local.el"))
 
 ;;*********************************************************
 (message "Loading ~/.emacs.d/init.el done")
