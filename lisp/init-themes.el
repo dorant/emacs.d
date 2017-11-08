@@ -1,3 +1,40 @@
+;;-------------------------------------------------------------
+;;; Theme hooks
+(defvar my/theme-hooks nil
+  "((theme-id . function) ...)")
+
+(defun my/add-theme-hook (theme-id hook-func)
+  (add-to-list 'my/theme-hooks (cons theme-id hook-func)))
+
+(use-package solarized
+  :ensure solarized-theme
+  :defer t
+  :init
+  (defun my/solarized-theme-hook ()
+    (set-face-attribute 'font-lock-constant-face nil :weight 'normal)
+    (set-face-attribute 'font-lock-function-name-face nil :weight 'bold)
+    (set-face-attribute 'which-key-key-face nil :foreground
+                        (face-attribute 'error :foreground)))
+  (my/add-theme-hook 'solarized-dark  #'my/solarized-theme-hook)
+  (my/add-theme-hook 'solarized-light #'my/solarized-theme-hook))
+  ;; :config
+  ;; (setq solarized-use-variable-pitch nil
+  ;;       solarized-use-less-bold t
+  ;;       solarized-use-more-italic nil
+  ;;       solarized-distinct-doc-face t
+  ;;       solarized-high-contrast-mode-line t
+  ;;       ;; I find different font sizes irritating.
+  ;;       solarized-height-minus-1 1.0
+  ;;       solarized-height-plus-1 1.0
+  ;;       solarized-height-plus-2 1.0
+  ;;       solarized-height-plus-3 1.0
+  ;;       solarized-height-plus-4 1.0))
+
+;; Set theme
+;;(load-theme 'solarized-dark  t)
+;;-------------------------------------------------------------
+
+
 (add-to-list 'custom-theme-load-path (expand-file-name "themes/emacs-color-theme-solarized" user-emacs-directory))
 
 (load-theme 'solarized t)  ; Load without confirm

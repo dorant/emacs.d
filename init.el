@@ -157,6 +157,16 @@
     :ensure t)
   )
 
+;; Spellchecking
+(use-package flycheck-vale
+  :pin melpa
+  :ensure t
+  :defer t
+  :after flycheck
+  :config (flycheck-vale-setup))
+
+
+
 
 
 (defun my-irony-mode-hook ()
@@ -300,8 +310,7 @@
   :ensure t
   :config
   (add-hook 'c++-mode-hook #'modern-c++-font-lock-mode)
-  (add-hook 'c-mode-hook   #'modern-c++-font-lock-mode)
-  )
+  (add-hook 'c-mode-hook   #'modern-c++-font-lock-mode))
 
 ; --------------------------------------------------------
 ; Show colors instead of controlchars in shell and compilation
@@ -315,8 +324,80 @@
     (read-only-mode))
   (add-hook 'compilation-filter-hook #'colorize-compilation-buffer)
   (autoload 'ansi-color-for-comint-mode-on "ansi-color" nil t)
-  (add-hook 'shell-mode-hook #'ansi-color-for-comint-mode-on)
-  )
+  (add-hook 'shell-mode-hook #'ansi-color-for-comint-mode-on))
+
+(use-package fill-column-indicator
+  :ensure t
+  :init
+  (setq fci-rule-column 80)
+  (setq fci-rule-color "#073642")
+  (setq fci-rule-width 2)
+
+;;  (add-hook 'markdown-mode-hook (lambda ()  (setq fci-rule-column 80)))
+
+  (defun jcf-fci-enabled-p ()
+    (and (boundp 'fci-mode) fci-mode))
+
+  (defvar jcf-fci-mode-suppressed nil)
+
+  (defadvice popup-create (before suppress-fci-mode activate)
+    "Suspend fci-mode while popups are visible"
+    (let ((fci-enabled (jcf-fci-enabled-p)))
+      (when fci-enabled
+        (set (make-local-variable 'jcf-fci-mode-suppressed) fci-enabled)
+        (turn-off-fci-mode))))
+
+  (defadvice popup-delete (after restore-fci-mode activate)
+    "Restore fci-mode when all popups have closed"
+    (when (and jcf-fci-mode-suppressed
+               (null popup-instances))
+      (setq jcf-fci-mode-suppressed nil)
+      (turn-on-fci-mode))
+
+    (defadvice enable-theme (after recompute-fci-face activate)
+      "Regenerate fci-mode line images after switching themes"
+      (dolist (buffer (buffer-list))
+        (with-current-buffer buffer
+          (turn-on-fci-mode))))))
+
+(define-globalized-minor-mode global-fci-mode fci-mode
+  (lambda () (if (or (or (derived-mode-p 'prog-mode) (eq major-mode 'text-mode)) (eq major-mode 'markdown-mode))
+                 (fci-mode 1))))
+
+(global-fci-mode 1)
+
+;;----------------------------------------------------------------------------
+;; Go
+;; electric-pair: insert matching delimiter
+;;----------------------------------------------------------------------------
+(use-package go-mode
+  :ensure t
+  :init
+  (progn
+    (setq gofmt-command "goimports")
+    (add-hook 'before-save-hook 'gofmt-before-save)
+    (bind-key [remap find-tag] #'godef-jump))
+  :config
+  (add-hook 'go-mode-hook 'electric-pair-mode)
+  (add-hook 'go-mode-hook 'my/go-mode-hook))
+
+(use-package company-go
+  :ensure t
+  :defer t
+  :init
+  (with-eval-after-load 'company
+    (add-to-list 'company-backends 'company-go)))
+
+(use-package go-eldoc
+  :ensure t
+  :defer
+  :init
+  (add-hook 'go-mode-hook 'go-eldoc-setup))
+
+(defun my/go-mode-hook ()
+  ;; Customize compile command to run go build
+  (setq compile-command "go build -v && go test -v && go vet && golint")
+  (define-key (current-local-map) "\C-c\C-c" 'compile))
 
 ;;----------------------------------------------------------------------------
 ;; Allow access from emacsclient
@@ -597,9 +678,15 @@
  '(compilation-always-kill t)
  '(compilation-scroll-output (quote first-error))
  '(compilation-skip-threshold 2)
+ '(compilation-ask-about-save nil)
+ '(frame-background-mode (quote dark))
  '(indent-tabs-mode nil)
  '(line-number-mode t)
+ '(package-selected-packages
+   (quote
+    (go-eldoc company-go go-mode flycheck-vale theme-changer solarized-theme use-package smex plantuml-mode modern-cpp-font-lock markdown-mode magit-gerrit irony flycheck-rtags fill-column-indicator evil-matchit dockerfile-mode docker company-statistics company-quickhelp company-flx column-marker cmake-mode)))
  '(show-trailing-whitespace t)
+ '(solarized-termcolors 256)
  '(tool-bar-mode nil))
 
 (custom-set-faces
