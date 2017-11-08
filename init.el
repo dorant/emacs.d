@@ -370,6 +370,11 @@
 ;; Go
 ;; electric-pair: insert matching delimiter
 ;;----------------------------------------------------------------------------
+(defun my/go-mode-hook ()
+  ;; Customize compile command to run go build
+  (setq compile-command "go build -v && go test -v && go vet && golint")
+)
+
 (use-package go-mode
   :ensure t
   :init
@@ -393,11 +398,6 @@
   :defer
   :init
   (add-hook 'go-mode-hook 'go-eldoc-setup))
-
-(defun my/go-mode-hook ()
-  ;; Customize compile command to run go build
-  (setq compile-command "go build -v && go test -v && go vet && golint")
-  (define-key (current-local-map) "\C-c\C-c" 'compile))
 
 ;;----------------------------------------------------------------------------
 ;; Allow access from emacsclient
@@ -660,7 +660,8 @@
 (global-set-key [(meta k)]        'copy-word)                ; Copy word to killbuffer and xclipboard
 
 (global-set-key "\C-cc"           'compile)
-(global-set-key "\C-c\C-c"        'make)
+(global-set-key "\C-c\C-c"        'recompile)
+;;(global-set-key "\C-c\C-c"        'make)
 
 (global-set-key [(home)]          'beginning-of-buffer)
 (global-set-key [(end)]           'end-of-buffer)
