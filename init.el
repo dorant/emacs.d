@@ -103,6 +103,10 @@
 (use-package yaml-mode
   :ensure t)
 
+(use-package groovy-mode
+  :pin melpa
+  :ensure t
+  :mode ("Jenkinsfile\\'" . groovy-mode))
 
 (use-package markdown-mode
   :ensure t
@@ -695,7 +699,7 @@
  '(line-number-mode t)
  '(package-selected-packages
    (quote
-    (yaml-mode flycheck-gometalinter exec-path-from-shell go-eldoc company-go go-mode flycheck-vale theme-changer solarized-theme use-package smex plantuml-mode modern-cpp-font-lock markdown-mode magit-gerrit irony flycheck-rtags fill-column-indicator evil-matchit dockerfile-mode docker company-statistics company-quickhelp company-flx column-marker cmake-mode)))
+    (groovy-mode yaml-mode flycheck-gometalinter exec-path-from-shell go-eldoc company-go go-mode flycheck-vale theme-changer solarized-theme use-package smex plantuml-mode modern-cpp-font-lock markdown-mode magit-gerrit irony flycheck-rtags fill-column-indicator evil-matchit dockerfile-mode docker company-statistics company-quickhelp company-flx column-marker cmake-mode)))
  '(show-trailing-whitespace t)
  '(solarized-termcolors 256)
  '(tool-bar-mode nil))
