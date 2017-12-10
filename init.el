@@ -100,6 +100,10 @@
   :ensure t)
 
 
+(use-package yaml-mode
+  :ensure t)
+
+
 (use-package markdown-mode
   :ensure t
   :mode ("\\.m\\(ark\\)?d\\(own\\)?\\'"))
@@ -388,16 +392,22 @@
 
 (use-package company-go
   :ensure t
-  :defer t
   :init
   (with-eval-after-load 'company
     (add-to-list 'company-backends 'company-go)))
 
+;; Needs:
+;; go get -u github.com/nsf/gocode
 (use-package go-eldoc
   :ensure t
-  :defer
   :init
   (add-hook 'go-mode-hook 'go-eldoc-setup))
+
+(use-package flycheck-gometalinter
+  :ensure t
+  :config
+  (progn
+    (flycheck-gometalinter-setup)))
 
 ;;----------------------------------------------------------------------------
 ;; Allow access from emacsclient
@@ -677,15 +687,15 @@
  '(blink-cursor-mode nil)
  '(column-number-mode t)
  '(compilation-always-kill t)
+ '(compilation-ask-about-save nil)
  '(compilation-scroll-output (quote first-error))
  '(compilation-skip-threshold 2)
- '(compilation-ask-about-save nil)
  '(frame-background-mode (quote dark))
  '(indent-tabs-mode nil)
  '(line-number-mode t)
  '(package-selected-packages
    (quote
-    (go-eldoc company-go go-mode flycheck-vale theme-changer solarized-theme use-package smex plantuml-mode modern-cpp-font-lock markdown-mode magit-gerrit irony flycheck-rtags fill-column-indicator evil-matchit dockerfile-mode docker company-statistics company-quickhelp company-flx column-marker cmake-mode)))
+    (yaml-mode flycheck-gometalinter exec-path-from-shell go-eldoc company-go go-mode flycheck-vale theme-changer solarized-theme use-package smex plantuml-mode modern-cpp-font-lock markdown-mode magit-gerrit irony flycheck-rtags fill-column-indicator evil-matchit dockerfile-mode docker company-statistics company-quickhelp company-flx column-marker cmake-mode)))
  '(show-trailing-whitespace t)
  '(solarized-termcolors 256)
  '(tool-bar-mode nil))
