@@ -377,10 +377,18 @@
 ;;----------------------------------------------------------------------------
 ;; Go
 ;; electric-pair: insert matching delimiter
+;; Needs:
+;; go get -u golang.org/x/tools/cmd/...
+;; go get -u github.com/rogpeppe/godef/...
+;; go get -u github.com/nsf/gocode
 ;;----------------------------------------------------------------------------
 (defun my/go-mode-hook ()
   ;; Customize compile command to run go build
   (setq compile-command "go build -v && go test -v && go vet && golint")
+
+  ;; Godef jump key binding
+  (local-set-key (kbd "M-.") 'godef-jump)
+  (local-set-key (kbd "M-*") 'pop-tag-mark)
 )
 
 (use-package go-mode
@@ -388,8 +396,7 @@
   :init
   (progn
     (setq gofmt-command "goimports")
-    (add-hook 'before-save-hook 'gofmt-before-save)
-    (bind-key [remap find-tag] #'godef-jump))
+    (add-hook 'before-save-hook 'gofmt-before-save))
   :config
   (add-hook 'go-mode-hook 'electric-pair-mode)
   (add-hook 'go-mode-hook 'my/go-mode-hook))
@@ -400,8 +407,6 @@
   (with-eval-after-load 'company
     (add-to-list 'company-backends 'company-go)))
 
-;; Needs:
-;; go get -u github.com/nsf/gocode
 (use-package go-eldoc
   :ensure t
   :init
