@@ -30,6 +30,13 @@
   (defmacro advice-add (&rest body))
   (defmacro use-package (&rest body)))
 
+;; Ensure environment variables looks the same in Emacs as in the shell
+(use-package exec-path-from-shell
+  :ensure t
+  :if (memq window-system '(mac ns x))
+  :config
+  (setq exec-path-from-shell-variables '("PATH" "GOPATH"))
+  (exec-path-from-shell-initialize))
 
 ;; --------------------------------------------------------
 ;; Initiate helpers and modes
@@ -375,12 +382,11 @@
 (global-fci-mode 1)
 
 ;;----------------------------------------------------------------------------
-;; Go
-;; electric-pair: insert matching delimiter
-;; Needs:
+;; Go, needs:
 ;; go get -u golang.org/x/tools/cmd/...
 ;; go get -u github.com/rogpeppe/godef/...
 ;; go get -u github.com/nsf/gocode
+;; go get -u github.com/golang/lint/golint
 ;;----------------------------------------------------------------------------
 (defun my/go-mode-hook ()
   ;; Customize compile command to run go build
@@ -398,7 +404,7 @@
     (setq gofmt-command "goimports")
     (add-hook 'before-save-hook 'gofmt-before-save))
   :config
-  (add-hook 'go-mode-hook 'electric-pair-mode)
+  (add-hook 'go-mode-hook 'electric-pair-mode) ;; insert matching delimiter
   (add-hook 'go-mode-hook 'my/go-mode-hook))
 
 (use-package company-go
@@ -635,12 +641,13 @@
       (shell-remote-cd buffer-dir))
 )
 
+
 ;;----------------------------------------------------------------------------
 ;; Key setup
 ;;----------------------------------------------------------------------------
 
 ; MacOSX bindings
-(if (string-equal "darwin" system-type)
+(if (memq window-system '(mac ns x))
     (progn
       (message "Mac OSX key-bindigs ...")
       (setq mac-option-modifier nil
