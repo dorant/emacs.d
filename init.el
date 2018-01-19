@@ -247,8 +247,8 @@
   :ensure t
   :bind ("\C-xg" . magit-status))
 
-(use-package magit-gerrit
-  :ensure t)
+;; (use-package magit-gerrit
+;;   :ensure t)
 
 ;; Define the coding style
 (defconst my-cc-style
@@ -381,28 +381,42 @@
 
 (global-fci-mode 1)
 
-;;----------------------------------------------------------------------------
-;; Go, needs:
-;; go get -u golang.org/x/tools/cmd/...
-;; go get -u github.com/rogpeppe/godef/...
-;; go get -u github.com/nsf/gocode
 ;; go get -u github.com/golang/lint/golint
-;;----------------------------------------------------------------------------
 (defun my/go-mode-hook ()
   ;; Customize compile command to run go build
   (setq compile-command "go build -v && go test -v && go vet && golint")
 
   ;; Godef jump key binding
   (local-set-key (kbd "M-.") 'godef-jump)
-  (local-set-key (kbd "M-*") 'pop-tag-mark)
-)
+  (local-set-key (kbd "M-*") 'pop-tag-mark))
 
 (use-package go-mode
   :ensure t
   :init
   (progn
     (setq gofmt-command "goimports")
-    (add-hook 'before-save-hook 'gofmt-before-save))
+    (add-hook 'before-save-hook 'gofmt-before-save)
+
+    (setq go-dependencies
+          '("github.com/rogpeppe/godef"
+            "github.com/nsf/gocode"
+            "golang.org/x/tools/cmd/godoc"
+            "golang.org/x/tools/cmd/goimports"
+            "github.com/golang/lint/golint"
+            ;; copy oracle.el to go-guru.el in load-path
+            "golang.org/x/tools/cmd/guru"
+            ;; copy refactor/rename/rename.el to rename.el in load-path
+            "golang.org/x/tools/cmd/gorename"
+            ;;"github.com/derekparker/delve/cmd/dlv"
+            ;;"github.com/josharian/impl"
+            ;;"github.com/godoctor/godoctor"
+            ;;"github.com/davidrjenni/reftools/cmd/fillstruct"
+            ))
+
+    (defun go-bootstrap ()
+      (interactive)
+      (compile (concat "go get -x -u " (mapconcat 'identity go-dependencies " ")))))
+
   :config
   (add-hook 'go-mode-hook 'electric-pair-mode) ;; insert matching delimiter
   (add-hook 'go-mode-hook 'my/go-mode-hook))
@@ -423,6 +437,9 @@
   :config
   (progn
     (flycheck-gometalinter-setup)))
+
+(use-package go-guru
+  :demand t)
 
 ;;----------------------------------------------------------------------------
 ;; Allow access from emacsclient
