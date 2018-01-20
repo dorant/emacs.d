@@ -117,7 +117,11 @@
 
 (use-package markdown-mode
   :ensure t
-  :mode ("\\.m\\(ark\\)?d\\(own\\)?\\'"))
+  :commands (markdown-mode gfm-mode)
+  :mode (("README\\.md\\'" . gfm-mode)
+         ("\\.md\\'" . markdown-mode)
+         ("\\.markdown\\'" . markdown-mode))
+  :init (setq markdown-command "multimarkdown"))
 
 ;; NOT READY: Find using rtags, or else tags
 (defun my-find-symbol (next-p)
@@ -453,6 +457,59 @@
   (unless (server-running-p)
     (server-start)))
 
+(use-package projectile
+    :diminish projectile-mode
+    :init
+    (setq projectile-keymap-prefix (kbd "C-c C-p"))
+    :config
+    (projectile-global-mode))
+
+(use-package treemacs
+  :ensure t
+  :pin melpa
+  :defer t
+  :config
+  (progn
+    ;; (use-package treemacs-evil
+    ;;   :ensure t
+    ;;   :demand t)
+    (setq treemacs-change-root-without-asking nil
+          treemacs-collapse-dirs              (if (executable-find "python") 3 0)
+          treemacs-file-event-delay           5000
+          treemacs-follow-after-init          t
+          treemacs-goto-tag-strategy          'refetch-index
+          treemacs-indentation                2
+          treemacs-indentation-string         " "
+          treemacs-is-never-other-window      nil
+          treemacs-never-persist              nil
+          treemacs-no-png-images              nil
+          treemacs-recenter-after-file-follow nil
+          treemacs-recenter-after-tag-follow  nil
+          treemacs-show-hidden-files          t
+          treemacs-silent-filewatch           nil
+          treemacs-silent-refresh             nil
+          treemacs-sorting                    'alphabetic-desc
+          treemacs-tag-follow-cleanup         t
+          treemacs-tag-follow-delay           1.5
+          treemacs-width                      35)
+
+    (with-eval-after-load 'winum
+      (define-key winum-keymap (kbd "M-0") #'treemacs-select-window))
+
+    (treemacs-follow-mode t)
+    (treemacs-filewatch-mode t)
+    (pcase (cons (not (null (executable-find "git")))
+                 (not (null (executable-find "python3"))))
+      (`(t . t)
+       (treemacs-git-mode 'extended))
+      (`(t . _)
+       (treemacs-git-mode 'simple)))))
+(use-package treemacs-projectile
+  :defer t
+  :ensure t
+  :config
+  (setq treemacs-header-function #'treemacs-projectile-create-header))
+
 ;; Avoid break in shell
 (setenv "PAGER" "cat")
 
@@ -658,7 +715,6 @@
       (shell-remote-cd buffer-dir))
 )
 
-
 ;;----------------------------------------------------------------------------
 ;; Key setup
 ;;----------------------------------------------------------------------------
@@ -686,21 +742,23 @@
         "../test-src/*" "../test-include/*"))
 
 
-(global-set-key [(f1)]            'other-window)             ; Jump between windows
-(global-set-key [(shift f1)]      'goto-line)                ; Goto line in file
-(global-set-key [(f2)]            'indent-for-comment)       ; Comment line after (C/C++)
-(global-set-key [(f3)]            'comment-region)           ; Comment a market region
-(global-set-key [(shift f3)]      'uncomment-region)         ; Uncomment a market region
-(global-set-key [(f4)]            'next-error)               ; Next error in a compiler result
-(global-set-key [(f8)]            'buffer-menu-other-window) ; List all buffers in a window
-(global-set-key [(shift f8)]      'shell-jump)               ; Open or jump to shell buffer
-(global-set-key [(f10)]           'ff-get-other-file)        ; Get corresponding .cc or .hh file
-(global-set-key [(shift f10)]     'revert-buffer)            ; Refresh the buffer contents from file
+(global-set-key [(f1)]            'other-window)               ; Jump between windows
+(global-set-key [(shift f1)]      'goto-line)                  ; Goto line in file
+(global-set-key [(f2)]            'indent-for-comment)         ; Comment line after (C/C++)
+(global-set-key [(f3)]            'comment-region)             ; Comment a market region
+(global-set-key [(shift f3)]      'uncomment-region)           ; Uncomment a market region
+(global-set-key [(f4)]            'next-error)                 ; Next error in a compiler result
+(global-set-key [(f6)]            'treemacs-projectile)        ; Show files with treemacs
+(global-set-key [(shift f6)]      'treemacs-projectile-toggle) ; Show files with treemacs
+(global-set-key [(f8)]            'buffer-menu-other-window)   ; List all buffers in a window
+(global-set-key [(shift f8)]      'shell-jump)                 ; Open or jump to shell buffer
+(global-set-key [(f10)]           'ff-get-other-file)          ; Get corresponding .cc or .hh file
+(global-set-key [(shift f10)]     'revert-buffer)              ; Refresh the buffer contents from file
 
-(global-set-key "%"               'match-bracket)            ; Jump between scopes, simple (or just writing '%')
+(global-set-key "%"               'match-bracket)              ; Jump between scopes, simple (or just writing '%')
 
-(global-set-key [(meta +)]        'file-note-jump)           ; Jump to file:row
-(global-set-key [(meta k)]        'copy-word)                ; Copy word to killbuffer and xclipboard
+(global-set-key [(meta +)]        'file-note-jump)             ; Jump to file:row
+(global-set-key [(meta k)]        'copy-word)                  ; Copy word to killbuffer and xclipboard
 
 (global-set-key "\C-cc"           'compile)
 (global-set-key "\C-c\C-c"        'recompile)
@@ -728,7 +786,7 @@
  '(line-number-mode t)
  '(package-selected-packages
    (quote
-    (groovy-mode yaml-mode flycheck-gometalinter exec-path-from-shell go-eldoc company-go go-mode flycheck-vale theme-changer solarized-theme use-package smex plantuml-mode modern-cpp-font-lock markdown-mode magit-gerrit irony flycheck-rtags fill-column-indicator evil-matchit dockerfile-mode docker company-statistics company-quickhelp company-flx column-marker cmake-mode)))
+    (treemacs-evil magit company flycheck docker-tramp avy treemacs-projectile treemacs groovy-mode yaml-mode flycheck-gometalinter exec-path-from-shell go-eldoc company-go go-mode flycheck-vale theme-changer solarized-theme use-package smex plantuml-mode modern-cpp-font-lock markdown-mode magit-gerrit irony flycheck-rtags fill-column-indicator evil-matchit dockerfile-mode docker company-statistics company-quickhelp company-flx column-marker cmake-mode)))
  '(show-trailing-whitespace t)
  '(solarized-termcolors 256)
  '(tool-bar-mode nil))
