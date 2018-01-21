@@ -215,11 +215,11 @@
   :config
   (setq company-idle-delay nil
         company-minimum-prefix-length 2
-        company-show-numbers t
+        company-show-numbers nil
         company-tooltip-limit 15
         company-dabbrev-downcase nil
         ;;company-backends '((company-irony))
-	)
+        )
 
   ;; Sort in previously used order
   (use-package company-statistics
@@ -233,7 +233,8 @@
     :if window-system
     :config
     (company-quickhelp-mode)
-    (setq company-quickhelp-delay 0.6))
+    (setq company-quickhelp-delay 0))
+
   ;; Fuzzy matching
   (use-package company-flx
     :ensure t
@@ -384,7 +385,8 @@
   (lambda () (if (or (or (derived-mode-p 'prog-mode) (eq major-mode 'text-mode)) (eq major-mode 'markdown-mode))
                  (fci-mode 1))))
 
-(global-fci-mode 1)
+;; fci seems to distort company-mode graphics
+;;(global-fci-mode 1)
 
 
 ;; Improved replacement for electric-pair-mode
@@ -414,7 +416,11 @@ inserted between the braces between the braces."
 
 (defun my/go-mode-hook ()
   ;; Customize compile command to run go build
-  (setq compile-command "go build -v && go test -v && go vet && golint"))
+  (setq compile-command "go build -v && go test -v && go vet && golint")
+
+  ;; Make sure only use company-go as company backend
+  (set (make-local-variable 'company-backends) '(company-go))
+  (company-mode))
 
 (use-package go-mode
   :ensure t
@@ -453,9 +459,8 @@ inserted between the braces between the braces."
 
 (use-package company-go
   :ensure t
-  :init
-  (with-eval-after-load 'company
-    (add-to-list 'company-backends 'company-go)))
+  :config
+  (setq company-go-show-annotation nil)) ;; Set to t for showing args in popup
 
 (use-package go-eldoc
   :ensure t
@@ -816,17 +821,7 @@ inserted between the braces between the braces."
  '(show-trailing-whitespace t)
  '(solarized-termcolors 256)
  '(tool-bar-mode nil))
-
-(custom-set-faces
- ;; custom-set-faces was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- )
-;;*********************************************************
-
-
-;;(set-face-attribute 'default nil :height 100)
+;;----------------------------------------------------------------------------
 
 (setq initial-scratch-message "")  ;; Empty scratch-buffer message
 (setq inhibit-startup-message t)   ;; No welcome screen
