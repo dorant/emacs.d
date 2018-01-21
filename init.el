@@ -227,6 +227,7 @@
     :config
     (add-hook 'after-init-hook #'company-statistics-mode))
   ;; Add help window
+
   (use-package company-quickhelp
     :ensure t
     :if window-system
@@ -350,34 +351,34 @@
   :init
   (setq fci-rule-column 80)
   (setq fci-rule-color "#073642")
-  (setq fci-rule-width 2)
+  (setq fci-rule-width 2))
 
 ;;  (add-hook 'markdown-mode-hook (lambda ()  (setq fci-rule-column 80)))
 
-  (defun jcf-fci-enabled-p ()
-    (and (boundp 'fci-mode) fci-mode))
+(defun my/fci-enabled ()
+  (and (boundp 'fci-mode) fci-mode))
 
-  (defvar jcf-fci-mode-suppressed nil)
+(defvar my/fci-mode-suppressed nil)
 
-  (defadvice popup-create (before suppress-fci-mode activate)
-    "Suspend fci-mode while popups are visible"
-    (let ((fci-enabled (jcf-fci-enabled-p)))
-      (when fci-enabled
-        (set (make-local-variable 'jcf-fci-mode-suppressed) fci-enabled)
-        (turn-off-fci-mode))))
+(defadvice popup-create (before suppress-fci-mode activate)
+  "Suspend fci-mode while popups are visible"
+  (let ((fci-enabled (my/fci-enabled)))
+    (when fci-enabled
+      (set (make-local-variable 'my/fci-mode-suppressed) fci-enabled)
+      (turn-off-fci-mode))))
 
-  (defadvice popup-delete (after restore-fci-mode activate)
-    "Restore fci-mode when all popups have closed"
-    (when (and jcf-fci-mode-suppressed
-               (null popup-instances))
-      (setq jcf-fci-mode-suppressed nil)
-      (turn-on-fci-mode))
+(defadvice popup-delete (after restore-fci-mode activate)
+  "Restore fci-mode when all popups have closed"
+  (when (and my/fci-mode-suppressed
+             (null popup-instances))
+    (setq my/fci-mode-suppressed nil)
+    (turn-on-fci-mode)))
 
-    (defadvice enable-theme (after recompute-fci-face activate)
-      "Regenerate fci-mode line images after switching themes"
-      (dolist (buffer (buffer-list))
-        (with-current-buffer buffer
-          (turn-on-fci-mode))))))
+(defadvice enable-theme (after recompute-fci-face activate)
+  "Regenerate fci-mode line images after switching themes"
+  (dolist (buffer (buffer-list))
+    (with-current-buffer buffer
+      (turn-on-fci-mode))))
 
 (define-globalized-minor-mode global-fci-mode fci-mode
   (lambda () (if (or (or (derived-mode-p 'prog-mode) (eq major-mode 'text-mode)) (eq major-mode 'markdown-mode))
@@ -385,14 +386,35 @@
 
 (global-fci-mode 1)
 
-;; go get -u github.com/golang/lint/golint
+
+;; Improved replacement for electric-pair-mode
+(defun my/go-electric-brace ()
+  "Insert an opening brace may be with the closing one.
+If there is a space before the brace also adds new line with
+properly indented closing brace and moves cursor to another line
+inserted between the braces between the braces."
+  (interactive)
+  (if (not (looking-back " "))
+      (insert "{")
+    (insert "{")
+    (newline)
+    (indent-according-to-mode)
+    (save-excursion
+      (newline)
+      (insert "}")
+      (indent-according-to-mode))))
+
+(defun my/indent-or-complete ()
+  "Complete or indent if nothing to complete."
+  (interactive)
+  (if (and (looking-at "\\s-\\|$")      ;; Whitespace or end of line
+           (looking-back "\\w\\|\\."))  ;; and previous is word or dot
+      (company-complete)
+    (indent-for-tab-command)))
+
 (defun my/go-mode-hook ()
   ;; Customize compile command to run go build
-  (setq compile-command "go build -v && go test -v && go vet && golint")
-
-  ;; Godef jump key binding
-  (local-set-key (kbd "M-.") 'godef-jump)
-  (local-set-key (kbd "M-*") 'pop-tag-mark))
+  (setq compile-command "go build -v && go test -v && go vet && golint"))
 
 (use-package go-mode
   :ensure t
@@ -420,9 +442,13 @@
     (defun go-bootstrap ()
       (interactive)
       (compile (concat "go get -x -u " (mapconcat 'identity go-dependencies " ")))))
-
+  :bind
+  (:map go-mode-map
+        ("{" . my/go-electric-brace)
+        ("M-." . godef-jump)
+        ("M-*" . pop-tag-mark)
+        ("<tab>" . my/indent-or-complete))
   :config
-  (add-hook 'go-mode-hook 'electric-pair-mode) ;; insert matching delimiter
   (add-hook 'go-mode-hook 'my/go-mode-hook))
 
 (use-package company-go
