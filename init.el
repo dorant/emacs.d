@@ -33,7 +33,7 @@
 ;; Ensure environment variables looks the same in Emacs as in the shell
 (use-package exec-path-from-shell
   :ensure t
-  :if (memq window-system '(mac ns x))
+  :if (string-equal system-type "darwin")
   :config
   (setq exec-path-from-shell-variables '("PATH" "GOPATH"))
   (exec-path-from-shell-initialize))
@@ -349,6 +349,7 @@
 
 (use-package fill-column-indicator
   :ensure t
+  :if (>= emacs-major-version 25)
   :init
   (setq fci-rule-column 80)
   (setq fci-rule-color "#073642")
@@ -751,9 +752,9 @@ inserted between the braces between the braces."
 ;;----------------------------------------------------------------------------
 
 ; MacOSX bindings
-(if (memq window-system '(mac ns x))
+(if (string-equal system-type "darwin")
     (progn
-      (message "Mac OSX key-bindigs ...")
+      (message "Mac OSX key-bindings ...")
       (setq mac-option-modifier nil
             mac-command-modifier 'meta
             x-select-enable-clipboard t
