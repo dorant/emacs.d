@@ -475,7 +475,9 @@ inserted between the braces between the braces."
     (flycheck-gometalinter-setup)))
 
 (use-package go-guru
-  :demand t)
+  :demand t
+  :init
+  (add-hook 'go-mode-hook #'go-guru-hl-identifier-mode))
 
 ;;----------------------------------------------------------------------------
 ;; Allow access from emacsclient
@@ -803,10 +805,6 @@ inserted between the braces between the braces."
 ;; Custom settings
 ;;----------------------------------------------------------------------------
 (custom-set-variables
- ;; custom-set-variables was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
  '(blink-cursor-mode nil)
  '(column-number-mode t)
  '(compilation-always-kill t)
@@ -816,9 +814,6 @@ inserted between the braces between the braces."
  '(frame-background-mode (quote dark))
  '(indent-tabs-mode nil)
  '(line-number-mode t)
- '(package-selected-packages
-   (quote
-    (treemacs-evil magit company flycheck docker-tramp avy treemacs-projectile treemacs groovy-mode yaml-mode flycheck-gometalinter exec-path-from-shell go-eldoc company-go go-mode flycheck-vale theme-changer solarized-theme use-package smex plantuml-mode modern-cpp-font-lock markdown-mode magit-gerrit irony flycheck-rtags fill-column-indicator evil-matchit dockerfile-mode docker company-statistics company-quickhelp company-flx column-marker cmake-mode)))
  '(show-trailing-whitespace t)
  '(solarized-termcolors 256)
  '(tool-bar-mode nil))

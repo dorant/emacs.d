@@ -1,51 +1,26 @@
-;;-------------------------------------------------------------
-;;; Theme hooks
-(defvar my/theme-hooks nil
-  "((theme-id . function) ...)")
+;; --------------------------------------------------------
+;; solarized theme: sellout/emacs-color-theme-solarized
+;; Found visual issues with powerline in bbatsov/solarized-emacs
+;; --------------------------------------------------------
+(use-package color-theme
+  :ensure t
+  :pin melpa
+  :catch (lambda (keyword err)
+           (message (error-message-string err))))
 
-(defun my/add-theme-hook (theme-id hook-func)
-  (add-to-list 'my/theme-hooks (cons theme-id hook-func)))
+(setq color-theme-libraries nil) ;; Avoid loading nonexisting themes
 
-(use-package solarized
-  :ensure solarized-theme
-  :defer t
-  :init
-  (defun my/solarized-theme-hook ()
-    (set-face-attribute 'font-lock-constant-face nil :weight 'normal)
-    (set-face-attribute 'font-lock-function-name-face nil :weight 'bold)
-    (set-face-attribute 'which-key-key-face nil :foreground
-                        (face-attribute 'error :foreground)))
-  (my/add-theme-hook 'solarized-dark  #'my/solarized-theme-hook)
-  (my/add-theme-hook 'solarized-light #'my/solarized-theme-hook))
-  ;; :config
-  ;; (setq solarized-use-variable-pitch nil
-  ;;       solarized-use-less-bold t
-  ;;       solarized-use-more-italic nil
-  ;;       solarized-distinct-doc-face t
-  ;;       solarized-high-contrast-mode-line t
-  ;;       ;; I find different font sizes irritating.
-  ;;       solarized-height-minus-1 1.0
-  ;;       solarized-height-plus-1 1.0
-  ;;       solarized-height-plus-2 1.0
-  ;;       solarized-height-plus-3 1.0
-  ;;       solarized-height-plus-4 1.0))
+(use-package color-theme-solarized
+  :ensure t
+  :pin melpa
+  :config
+  (customize-set-variable 'frame-background-mode 'dark)
+  (load-theme 'solarized t))    ;; Load without confirm
 
-;; Set theme
-;;(load-theme 'solarized-dark  t)
-;;-------------------------------------------------------------
+;; Already set in init.el: 'solarized-termcolors 256)
 
 
-(add-to-list 'custom-theme-load-path (expand-file-name "themes/emacs-color-theme-solarized" user-emacs-directory))
-
-(load-theme 'solarized t)  ; Load without confirm
-
-(custom-set-variables
- '(frame-background-mode (quote dark)) ;; Solarized dark theme
- '(solarized-termcolors 256)
- )
-(enable-theme 'solarized)
-
-
+;; --------------------------------------------------------
 ;; Powerline - nicer status line
 ;; Issues? Look at:
 ;;         http://irrationalrose.com/2015/05/29/workaround-for-srgb-colour-issue-for-powerline-on-os-x.html
@@ -53,6 +28,7 @@
 ;;
 ;; Updated with
 ;; https://github.com/milkypostman/powerline/issues/101
+;; --------------------------------------------------------
 (use-package powerline
   :load-path "lisp/powerline")
 
