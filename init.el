@@ -43,7 +43,7 @@
 ;; --------------------------------------------------------
 
 ;; Themes and powerline (i.e. infobar)
-(use-package init-themes
+(use-package init-visuals
   :load-path "lisp/")
 
 ;; Jump between matching tags
@@ -805,26 +805,15 @@ inserted between the braces between the braces."
 ;; Custom settings
 ;;----------------------------------------------------------------------------
 (custom-set-variables
- '(blink-cursor-mode nil)
- '(column-number-mode t)
  '(compilation-always-kill t)
  '(compilation-ask-about-save nil)
  '(compilation-scroll-output (quote first-error))
  '(compilation-skip-threshold 2)
- '(frame-background-mode (quote dark))
  '(indent-tabs-mode nil)
- '(line-number-mode t)
- '(show-trailing-whitespace t)
- '(solarized-termcolors 256)
- '(tool-bar-mode nil))
+ '(package-selected-packages
+   (quote
+    (treemacs-projectile treemacs flycheck-gometalinter go-eldoc company-go go-mode fill-column-indicator modern-cpp-font-lock plantuml-mode magit cmake-mode company-flx company-quickhelp company-statistics company irony flycheck-vale flycheck-rtags flycheck markdown-mode groovy-mode yaml-mode dockerfile-mode docker smex evil-matchit color-theme-solarized color-theme exec-path-from-shell use-package))))
 ;;----------------------------------------------------------------------------
-
-(setq initial-scratch-message "")  ;; Empty scratch-buffer message
-(setq inhibit-startup-message t)   ;; No welcome screen
-
-;; Change startup screen size
-(add-to-list 'default-frame-alist '(height . 55))
-(add-to-list 'default-frame-alist '(width . 220))
 
 (when (file-exists-p "~/.emacs.local.el")
   (load "~/.emacs.local.el"))

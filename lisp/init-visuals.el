@@ -1,4 +1,23 @@
 ;; --------------------------------------------------------
+;; Visual custom settings
+;; --------------------------------------------------------
+(custom-set-variables
+ '(blink-cursor-mode nil)
+ '(column-number-mode t)
+ '(frame-background-mode (quote dark))
+ '(line-number-mode t)
+ '(show-trailing-whitespace t)
+ '(solarized-termcolors 256)
+ '(tool-bar-mode nil))
+
+(setq initial-scratch-message "")  ;; Empty scratch-buffer message
+(setq inhibit-startup-message t)   ;; No welcome screen
+
+;; Change startup screen size
+(add-to-list 'default-frame-alist '(height . 55))
+(add-to-list 'default-frame-alist '(width . 220))
+
+;; --------------------------------------------------------
 ;; solarized theme: sellout/emacs-color-theme-solarized
 ;; Found visual issues with powerline in bbatsov/solarized-emacs
 ;; --------------------------------------------------------
@@ -16,9 +35,6 @@
   :config
   (customize-set-variable 'frame-background-mode 'dark)
   (load-theme 'solarized t))    ;; Load without confirm
-
-;; Already set in init.el: 'solarized-termcolors 256)
-
 
 ;; --------------------------------------------------------
 ;; Powerline - nicer status line
@@ -92,4 +108,4 @@
 
 (powerline-default-linenum-theme)
 
-(provide 'init-themes)
+(provide 'init-visuals)
