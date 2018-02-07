@@ -30,8 +30,9 @@
 (setq color-theme-libraries nil) ;; Avoid loading nonexisting themes
 
 (use-package color-theme-solarized
-  :ensure t
-  :pin melpa
+  :load-path "lisp/emacs-color-theme-solarized"
+  ;; :ensure t
+  ;; :pin melpa
   :config
   (customize-set-variable 'frame-background-mode 'dark)
   (load-theme 'solarized t))    ;; Load without confirm

@@ -1,3 +1,6 @@
 [submodule "lisp/powerline"]
 	path = lisp/powerline
 	url = https://github.com/milkypostman/powerline
+[submodule "lisp/emacs-color-theme-solarized"]
+	path = lisp/emacs-color-theme-solarized
+	url = git@github.com:dorant/emacs-color-theme-solarized.git
