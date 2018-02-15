@@ -4,3 +4,6 @@
 [submodule "lisp/emacs-color-theme-solarized"]
 	path = lisp/emacs-color-theme-solarized
 	url = git@github.com:dorant/emacs-color-theme-solarized.git
+[submodule "lisp/asn1-mode"]
+	path = lisp/asn1-mode
+	url = https://github.com/kawabata/asn1-mode.git

@@ -544,6 +544,10 @@ inserted between the braces between the braces."
   :config
   (setq treemacs-header-function #'treemacs-projectile-create-header))
 
+
+(use-package asn1-mode
+  :load-path "lisp/asn1-mode/")
+
 ;; Avoid break in shell
 (setenv "PAGER" "cat")
 
