@@ -184,9 +184,9 @@
   :after flycheck
   :config (flycheck-vale-setup))
 
-
-
-
+(use-package erlang
+  :pin melpa
+  :ensure t)
 
 (defun my-irony-mode-hook ()
   (define-key irony-mode-map [remap completion-at-point]
