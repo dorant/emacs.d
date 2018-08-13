@@ -1,3 +1,7 @@
+
+# Install Emacs
+brew install emacs
+
 # emacs.d
 Emacs configuration
 

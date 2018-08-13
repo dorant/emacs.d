@@ -46,21 +46,33 @@
 (use-package init-visuals
   :load-path "lisp/")
 
+;; Zoom, inc/dec text size
+(use-package default-text-scale
+  :ensure t
+  :pin melpa
+  :bind (("C-0" . default-text-scale-reset)
+         ("C--" . default-text-scale-decrease)
+         ("C-=" . default-text-scale-increase)))
+
+;; Functions for moving buffers relative its position
+(use-package move-border
+  :load-path "lisp/"
+  :bind (([(meta up)]    . move-border-up)
+         ([(meta down)]  . move-border-down)
+         ([(meta left)]  . move-border-left)
+         ([(meta right)] . move-border-right)))
+
+;; Prefer window-split: top-bottom
+(setq split-width-threshold nil)
+;;(setq split-height-threshold nil)
+
+
 ;; Jump between matching tags
 (use-package evil-matchit
   :ensure t
   :bind ("C-%" . evilmi-jump-items)
   :config
   (global-evil-matchit-mode 1))
-
-;; Functions for moving buffers relative its position
-(use-package move-border
-  :load-path "lisp/"
-  :bind (([(meta up)]       . move-border-up)
-         ([(meta down)]     . move-border-down)
-         ([(meta left)]     . move-border-left)
-         ([(meta right)]    . move-border-right)))
-
 
 ;; Find File At Point
 (use-package ffap
@@ -147,14 +159,14 @@
 ;;  (add-to-list 'company-backends 'company-rtags)
 ;;  (add-hook 'c-mode-common-hook 'rtags-start-process-unless-running))
 
-  (define-key c-mode-base-map (kbd "M-.")
-     (function rtags-find-symbol-at-point))
-  (define-key c-mode-base-map (kbd "M-,")
-     (function rtags-find-references-at-point))
-  (define-key c-mode-base-map (kbd "M-*")
-     (function rtags-location-stack-back))
-  (define-key c-mode-base-map (kbd "M-/")
-     (function rtags-find-all-references-at-point))
+  ;; (define-key c-mode-base-map (kbd "M-.")
+  ;;    (function rtags-find-symbol-at-point))
+  ;; (define-key c-mode-base-map (kbd "M-,")
+  ;;    (function rtags-find-references-at-point))
+  ;; (define-key c-mode-base-map (kbd "M-*")
+  ;;    (function rtags-location-stack-back))
+  ;; (define-key c-mode-base-map (kbd "M-/")
+  ;;    (function rtags-find-all-references-at-point))
 )
 
 ;;(require 'init-python-mode)           ;; Python mode
@@ -253,6 +265,13 @@
   :ensure t
   :bind ("\C-xg" . magit-status))
 
+;; Terraform
+(use-package terraform-mode
+  :ensure t
+  :pin melpa-stable
+  :config
+  (add-hook 'terraform-mode-hook #'terraform-format-on-save-mode))
+
 ;; (use-package magit-gerrit
 ;;   :ensure t)
 
@@ -315,13 +334,13 @@
 
 (use-package plantuml-mode
   :ensure t
-  :mode ("\\.p\\(lant\\)?uml\\'")
+  :mode ("\\.p\\(lant\\)?u\\(ml\\)?\\'")
   :config (progn
             (setq plantuml-jar-path (expand-file-name "~/bin/plantuml.jar"))
             (setq plantuml-output-type "png")
             ;(setq plantuml-output-type "utxt")
             (unless (file-exists-p plantuml-jar-path)
-              (alert (format "plantuml not found at %s" plantuml-jar-path)))))
+              (message (format "plantuml not found at %s" plantuml-jar-path)))))
 
 
 ; --------------------------------------------------------
@@ -343,9 +362,9 @@
     (read-only-mode)
     (ansi-color-apply-on-region (point-min) (point-max))
     (read-only-mode))
-  (add-hook 'compilation-filter-hook #'colorize-compilation-buffer)
-  (autoload 'ansi-color-for-comint-mode-on "ansi-color" nil t)
-  (add-hook 'shell-mode-hook #'ansi-color-for-comint-mode-on))
+  (add-hook 'compilation-filter-hook #'colorize-compilation-buffer))
+  ;; (autoload 'ansi-color-for-comint-mode-on "ansi-color" nil t)
+  ;; (add-hook 'shell-mode-hook #'ansi-color-for-comint-mode-on))
 
 (use-package fill-column-indicator
   :ensure t
@@ -548,8 +567,63 @@ inserted between the braces between the braces."
 (use-package asn1-mode
   :load-path "lisp/asn1-mode/")
 
+
+;;======================================
+;; *shell*
+;; https://ambrevar.bitbucket.io/emacs-eshell/
+;; https://emacs.stackexchange.com/questions/37887/send-region-to-shell-in-another-buffer
+;; https://gist.github.com/ugovaretto/0339c5e3efe3fdde502a
+;;======================================
 ;; Avoid break in shell
 (setenv "PAGER" "cat")
+
+(setq explicit-shell-file-name "/bin/bash")
+(setq comint-scroll-to-bottom-on-output t) ;; Autoscroll to bottom
+(setq comint-process-echoes nil)
+;; No trailing whitespace in shell
+(add-hook 'shell-mode-hook (lambda ()
+                             (setq show-trailing-whitespace nil)))
+
+(defun send-current-line-to-process (arg beg end)
+  "Send the current line to a process buffer.
+   The first time it's called, will prompt for the buffer to
+   send to. Subsequent calls send to the same buffer, unless a
+   prefix argument is used (C-u), or the buffer no longer has an
+   active process."
+  (interactive "P\nr")
+
+  ;; Handle process selection
+  (when (or arg ;; user asks for selection
+            (not (boundp 'sendline-buffer-target)) ;; target not set
+            ;; or target is not set to an active process:
+            (not (process-live-p (get-buffer-process sendline-buffer-target))))
+    (let (procs buf)
+      (setq procs (remove nil (seq-map
+                               (lambda (el)
+                                 (when (setq buf (process-buffer el))
+                                   (buffer-name buf)))
+                               (process-list))))
+      (if (not procs) (error "No process buffers currently open.")
+        (setq sendline-buffer-target (completing-read "Process: " procs)))))
+
+  ;; Send current line
+  (let ((currentline (concat (buffer-substring (save-excursion (beginning-of-line) (point))
+                                       (save-excursion (end-of-line) (point))) "\n")))
+
+    ;; Echo currentline to buffer
+    (with-current-buffer sendline-buffer-target
+      (goto-char (process-mark (get-buffer-process sendline-buffer-target)))
+      (insert currentline)
+      (move-marker (process-mark (get-buffer-process sendline-buffer-target)) (point)))
+
+    (message (format "send-line: %s" currentline))
+    (process-send-string sendline-buffer-target currentline))
+
+  ;; Show buffer
+  (display-buffer sendline-buffer-target t)
+  ;; Jump to next line
+  (next-line))
+
 
 ;; We don't want to type yes and no all the time so, do y and n
 (defalias 'yes-or-no-p 'y-or-n-p)
@@ -790,6 +864,12 @@ inserted between the braces between the braces."
 (global-set-key [(shift f6)]      'treemacs-projectile-toggle) ; Show files with treemacs
 (global-set-key [(f8)]            'buffer-menu-other-window)   ; List all buffers in a window
 (global-set-key [(shift f8)]      'shell-jump)                 ; Open or jump to shell buffer
+
+(global-set-key [(f9)]            'send-current-line-to-process) ; tcl-send-current-line)    ; Send command to a process
+;; (global-set-key [(shift f9)]      'tcl-eval-region-new)
+;; (global-set-key [(control f9)]    'tcl-source-current-function)
+;; (global-set-key [(control shift f9)] 'tcl-set-current-process-buffer-new) ; Associate a text file with a process for F9 command sending
+
 (global-set-key [(f10)]           'ff-get-other-file)          ; Get corresponding .cc or .hh file
 (global-set-key [(shift f10)]     'revert-buffer)              ; Refresh the buffer contents from file
 
@@ -805,18 +885,32 @@ inserted between the braces between the braces."
 (global-set-key [(home)]          'beginning-of-buffer)
 (global-set-key [(end)]           'end-of-buffer)
 
+;;Seems missing in Emacs 25.X
+(global-set-key [(meta *)]        'pop-tag-mark)
+
 ;;----------------------------------------------------------------------------
 ;; Custom settings
 ;;----------------------------------------------------------------------------
 (custom-set-variables
+ ;; custom-set-variables was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ '(blink-cursor-mode nil)
+ '(column-number-mode t)
  '(compilation-always-kill t)
  '(compilation-ask-about-save nil)
  '(compilation-scroll-output (quote first-error))
  '(compilation-skip-threshold 2)
+ '(frame-background-mode (quote dark))
  '(indent-tabs-mode nil)
+ '(line-number-mode t)
  '(package-selected-packages
    (quote
-    (treemacs-projectile treemacs flycheck-gometalinter go-eldoc company-go go-mode fill-column-indicator modern-cpp-font-lock plantuml-mode magit cmake-mode company-flx company-quickhelp company-statistics company irony flycheck-vale flycheck-rtags flycheck markdown-mode groovy-mode yaml-mode dockerfile-mode docker smex evil-matchit color-theme-solarized color-theme exec-path-from-shell use-package))))
+    (hcl-mode terraform-mode treemacs-projectile treemacs flycheck-gometalinter go-eldoc company-go go-mode fill-column-indicator modern-cpp-font-lock plantuml-mode magit cmake-mode company-flx company-quickhelp company-statistics company irony flycheck-vale flycheck-rtags flycheck markdown-mode groovy-mode yaml-mode dockerfile-mode docker smex evil-matchit color-theme-solarized color-theme exec-path-from-shell use-package)))
+ '(show-trailing-whitespace t)
+ '(solarized-termcolors 256)
+ '(tool-bar-mode nil))
 ;;----------------------------------------------------------------------------
 
 (when (file-exists-p "~/.emacs.local.el")
