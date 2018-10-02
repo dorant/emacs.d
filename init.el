@@ -125,7 +125,7 @@
 (use-package groovy-mode
   :pin melpa
   :ensure t
-  :mode ("Jenkinsfile\\'" . groovy-mode))
+  :mode ("Jenkinsfile.*\\'" . groovy-mode))
 
 (use-package markdown-mode
   :ensure t
@@ -581,8 +581,12 @@ inserted between the braces between the braces."
 (setq comint-scroll-to-bottom-on-output t) ;; Autoscroll to bottom
 (setq comint-process-echoes nil)
 ;; No trailing whitespace in shell
-(add-hook 'shell-mode-hook (lambda ()
-                             (setq show-trailing-whitespace nil)))
+(add-hook 'shell-mode-hook
+          (lambda () (setq-local show-trailing-whitespace nil)))
+;; No trailing whitespace in Buffer menu
+(add-hook 'buffer-menu-mode-hook
+	  (lambda () (setq-local show-trailing-whitespace nil)))
+
 
 (defun send-current-line-to-process (arg beg end)
   "Send the current line to a process buffer.
