@@ -498,6 +498,53 @@ inserted between the braces between the braces."
   :init
   (add-hook 'go-mode-hook #'go-guru-hl-identifier-mode))
 
+
+;; rustup toolchain add nightly
+;; cargo +nightly install racer
+;; rustup component add rust-src
+;; rustup component add rustfmt
+;; $(rustc --print sysroot)
+
+(use-package rust-mode
+  :ensure t
+  ;; :defer t
+  :init
+  (require 'rust-mode)
+  (global-company-mode)
+  (add-to-list 'auto-mode-alist '("\\.rs\\'" . rust-mode))
+
+  :config
+  ;; (use-package company-racer
+  ;;     :pin melpa)
+  ;; (use-package flycheck-rust
+  ;;     :pin melpa)
+  (use-package racer
+    :ensure t
+    :defer t
+    :init
+    (setq racer-rust-src-path (concat (getenv "HOME")
+                                      "/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/src"))
+    (setq racer-cmd (concat (getenv "HOME")
+                            "/.cargo/bin/racer"))
+    :config
+    (define-key rust-mode-map (kbd "M-\"") #'racer-find-definition)
+    (add-hook 'racer-mode-hook #'eldoc-mode)
+    (add-hook 'racer-mode-hook #'company-mode)
+    (local-set-key (kbd "TAB") #'company-indent-or-complete-common)
+    (setq company-tooltip-align-annotations t)
+    )
+  (defun my-rust-mode-hook()
+    ;; (set (make-local-variable 'compile-command "cargo run"))
+    (setq compile-command "cargo run")
+    (setq rust-format-on-save t)
+    (add-hook 'flycheck-mode-hook #'flycheck-rust-setup)
+    ;;(set (make-local-variable 'company-backends) '(company-racer))
+    ;;(local-set-key (kbd "TAB") #'racer-complete-or-indent)
+    )
+  (add-hook 'rust-mode-hook 'my-rust-mode-hook)
+  (add-hook 'rust-mode-hook #'racer-mode)
+  )
+
 ;;----------------------------------------------------------------------------
 ;; Allow access from emacsclient
 ;;----------------------------------------------------------------------------
@@ -954,3 +1001,9 @@ inserted between the braces between the braces."
 ;;*********************************************************
 (message "Loading ~/.emacs.d/init.el done")
 ;;*********************************************************
+(custom-set-faces
+ ;; custom-set-faces was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ )
