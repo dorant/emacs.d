@@ -35,7 +35,7 @@
   :ensure t
   :if (string-equal system-type "darwin")
   :config
-  (setq exec-path-from-shell-variables '("PATH" "GOPATH"))
+  (setq exec-path-from-shell-variables '("PATH" "GOPATH" "RUST_SRC_PATH"))
   (exec-path-from-shell-initialize))
 
 ;; --------------------------------------------------------
@@ -499,19 +499,20 @@ inserted between the braces between the braces."
   (add-hook 'go-mode-hook #'go-guru-hl-identifier-mode))
 
 
+;; rustup self update
+;; rustup show
+;; # Set in ~/.bash_profile
+;; export RUST_SRC_PATH=$(rustc --print sysroot)/lib/rustlib/src/rust/src
 ;; rustup toolchain add nightly
-;; cargo +nightly install racer
 ;; rustup component add rust-src
+;; cargo +nightly install racer
 ;; rustup component add rustfmt
-;; $(rustc --print sysroot)
 
 (use-package rust-mode
   :ensure t
-  ;; :defer t
-  :init
-  (require 'rust-mode)
-  (global-company-mode)
-  (add-to-list 'auto-mode-alist '("\\.rs\\'" . rust-mode))
+  :mode "\\.rs\\'"
+  ;;:init
+  ;;(global-company-mode)
 
   :config
   ;; (use-package company-racer
@@ -520,12 +521,7 @@ inserted between the braces between the braces."
   ;;     :pin melpa)
   (use-package racer
     :ensure t
-    :defer t
-    :init
-    (setq racer-rust-src-path (concat (getenv "HOME")
-                                      "/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/src"))
-    (setq racer-cmd (concat (getenv "HOME")
-                            "/.cargo/bin/racer"))
+    :hook (rust-mode . racer-mode)
     :config
     (define-key rust-mode-map (kbd "M-\"") #'racer-find-definition)
     (add-hook 'racer-mode-hook #'eldoc-mode)
@@ -542,7 +538,6 @@ inserted between the braces between the braces."
     ;;(local-set-key (kbd "TAB") #'racer-complete-or-indent)
     )
   (add-hook 'rust-mode-hook 'my-rust-mode-hook)
-  (add-hook 'rust-mode-hook #'racer-mode)
   )
 
 ;;----------------------------------------------------------------------------
