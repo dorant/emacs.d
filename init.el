@@ -1,11 +1,13 @@
-;;*********************************************************
-;;
-;; Description
-;;  Setup file for emacs
-;;
-;;*********************************************************
+;;; init.el --- Initialization file for Emacs
+;;; Commentary:
+;;; *********************************************************
+;;;
+;;;  Initialization file for Emacs
+;;;
+;;; *********************************************************
+;;; Code:
+
 (message "Loading ~/.emacs.d/init.el ...")
-;;*********************************************************
 
 ;; --------------------------------------------------------
 ;; Package handling
@@ -17,7 +19,7 @@
             package-archives '(("melpa-stable" . "https://stable.melpa.org/packages/")
                                ("melpa"        . "https://melpa.org/packages/")
                                ("gnu"          . "https://elpa.gnu.org/packages/"))
-            use-package-always-pin "melpa-stable"
+            use-package-always-pin "melpa"
             use-package-verbose t)
       (require 'package)
       (package-initialize)
@@ -91,11 +93,11 @@
         ffap-require-prefix t)
   (ido-mode 1))
 
-;; M-x enhancement that uses ido
-(use-package smex
-  :ensure t
-  :config (smex-initialize)
-  :bind ("M-x" . smex))
+;; ;; M-x enhancement that uses ido
+;; (use-package smex
+;;   :ensure t
+;;   :config (smex-initialize)
+;;   :bind ("M-x" . smex))
 
 (use-package tramp
   :ensure t
@@ -106,10 +108,7 @@
 
 ;; Docker
 (use-package docker
-  :ensure t
-  :pin melpa
-  :config
-  (docker-global-mode))
+  :ensure t)
 
 (use-package dockerfile-mode
   :ensure t
@@ -118,37 +117,80 @@
 (use-package docker-tramp
   :ensure t)
 
+;; ;; NOT READY: Find using rtags, or else tags
+;; (defun my-find-symbol (next-p)
+;;   (interactive "P")
+;;   (or (and (require 'rtags nil t)
+;;            (rtags-find-symbol-at-point))
+;;       (and (progn (setq tag (symbol-name (symbol-at-point)))
+;;                   (message (format "Could not find using rtags, attempt tags for finding '%s'" tag))
+;;                   )
+;;            (condition-case nil
+;;                (find-tag tag next-p)
+;;              (error nil)))))
 
-(use-package yaml-mode
-  :ensure t)
 
-(use-package groovy-mode
-  :pin melpa
+;; --------------------------------------------------------
+;; Common language tools
+;; --------------------------------------------------------
+
+(use-package lsp-mode
   :ensure t
-  :mode ("Jenkinsfile.*\\'" . groovy-mode))
+  :commands (lsp lsp-deferred)
+  :hook ((rust-mode go-mode) . lsp-deferred))
 
-(use-package markdown-mode
+;; provides fancier overlays (like helptext)
+;; (use-package lsp-ui
+;;   :ensure t
+;;   :commands lsp-ui-mode)
+
+;; company-lsp integrates company mode completion with lsp-mode.
+;; completion-at-point also works out of the box but doesn't support snippets.
+(use-package company-lsp
   :ensure t
-  :commands (markdown-mode gfm-mode)
-  :mode (("README\\.md\\'" . gfm-mode)
-         ("\\.md\\'" . markdown-mode)
-         ("\\.markdown\\'" . markdown-mode))
-  :init (setq markdown-command "multimarkdown"))
+  :commands company-lsp)
 
-;; NOT READY: Find using rtags, or else tags
-(defun my-find-symbol (next-p)
-  (interactive "P")
-  (or (and (require 'rtags nil t)
-           (rtags-find-symbol-at-point))
-      (and (progn (setq tag (symbol-name (symbol-at-point)))
-                  (message (format "Could not find using rtags, attempt tags for finding '%s'" tag))
-                  )
-           (condition-case nil
-               (find-tag tag next-p)
-             (error nil)))
-      )
-  )
+;; ;; Optional - provides snippet support.
+;; (use-package yasnippet
+;;   :ensure t
+;;   :commands yas-minor-mode
+;;   :hook (go-mode . yas-minor-mode))
 
+;; Completion
+(use-package company
+  :ensure t
+  :bind ([C-tab] . company-complete)
+  :init
+  (add-hook 'after-init-hook #'global-company-mode)
+  :config
+  (setq company-idle-delay nil
+        company-minimum-prefix-length 2
+        company-show-numbers nil
+        company-tooltip-limit 15
+        company-dabbrev-downcase nil
+        ;;company-backends '((company-irony))
+        )
+
+  ;; Sort in previously used order
+  (use-package company-statistics
+    :ensure t
+    :config
+    (add-hook 'after-init-hook #'company-statistics-mode))
+
+  ;; ;; Add help window
+  ;; (use-package company-quickhelp
+  ;;   :ensure t
+  ;;   :if window-system
+  ;;   :config
+  ;;   (company-quickhelp-mode)
+  ;;   (setq company-quickhelp-delay 0))
+
+  ;; Fuzzy matching
+  (use-package company-flx
+    :ensure t
+    :config
+    (company-flx-mode t))
+)
 
 (use-package rtags
   :load-path "~/bin/rtags/share/emacs/site-lisp/rtags/"
@@ -171,7 +213,7 @@
 
 ;;(require 'init-python-mode)           ;; Python mode
 
-(defun my-flycheck-rtags-hook ()
+(defun my/flycheck-rtags-hook ()
   (flycheck-mode)
   (flycheck-select-checker 'rtags)
   (setq-local flycheck-check-syntax-automatically nil) ;; Let rtags trigger the check
@@ -181,26 +223,23 @@
 (use-package flycheck
   :ensure t
   :init
-  (add-hook 'c++-mode-hook #'my-flycheck-rtags-hook)
+  (global-flycheck-mode)
+  (add-hook 'c++-mode-hook #'my/flycheck-rtags-hook)
 
   :config
   (use-package flycheck-rtags
-    :ensure t)
-  )
+    :ensure t))
 
 ;; Spellchecking
 (use-package flycheck-vale
-  :pin melpa
   :ensure t
   :defer t
   :after flycheck
   :config (flycheck-vale-setup))
 
-(use-package erlang
-  :pin melpa
-  :ensure t)
 
-(defun my-irony-mode-hook ()
+
+(defun my/irony-mode-hook ()
   (define-key irony-mode-map [remap completion-at-point]
     'irony-completion-at-point-async)
   (define-key irony-mode-map [remap complete-symbol]
@@ -214,46 +253,10 @@
   :config
   ;; replace the `completion-at-point' and `complete-symbol' bindings in
   ;; irony-mode's buffers by irony-mode's function
-  (add-hook 'irony-mode-hook #'my-irony-mode-hook)
+  (add-hook 'irony-mode-hook #'my/irony-mode-hook)
   ;;(add-hook 'irony-mode-hook 'irony-cdb-autosetup-compile-options)
   )
 
-;; Completion
-(use-package company
-  :ensure t
-  :bind ([C-tab] . company-complete)
-  :init
-  (add-hook 'after-init-hook #'global-company-mode)
-  :config
-  (setq company-idle-delay nil
-        company-minimum-prefix-length 2
-        company-show-numbers nil
-        company-tooltip-limit 15
-        company-dabbrev-downcase nil
-        ;;company-backends '((company-irony))
-        )
-
-  ;; Sort in previously used order
-  (use-package company-statistics
-    :ensure t
-    :config
-    (add-hook 'after-init-hook #'company-statistics-mode))
-  ;; Add help window
-
-  (use-package company-quickhelp
-    :ensure t
-    :if window-system
-    :config
-    (company-quickhelp-mode)
-    (setq company-quickhelp-delay 0))
-
-  ;; Fuzzy matching
-  (use-package company-flx
-    :ensure t
-    :pin melpa
-    :config
-    (company-flx-mode t))
-)
 
 
 ;; CMake color
@@ -265,18 +268,16 @@
   :ensure t
   :bind ("\C-xg" . magit-status))
 
-;; Terraform
-(use-package terraform-mode
-  :ensure t
-  :pin melpa-stable
-  :config
-  (add-hook 'terraform-mode-hook #'terraform-format-on-save-mode))
-
 ;; (use-package magit-gerrit
 ;;   :ensure t)
 
+
+;; --------------------------------------------------------
+;; C++
+;; --------------------------------------------------------
+
 ;; Define the coding style
-(defconst my-cc-style
+(defconst my/cc-style
   '((c-tab-always-indent           . t)
     (c-basic-offset                . 4)
     (c-comment-only-line-offset    . 0)
@@ -303,14 +304,14 @@
   :mode ("\\.h\\\'" . c++-mode) ;; Let .h files be opened in C++ mode
   :config
   (setq c-recognize-knr-p nil) ;; Dont check for old-style (K&R) function declarations, this should speed up indenting
-  (c-add-style "my-cc-style" my-cc-style)
+  (c-add-style "my/cc-style" my/cc-style)
 
   (add-hook 'c-mode-hook (function (lambda ()
                                      (define-key c-mode-map "\C-c\C-c" 'make)
-				     (c-set-style "my-cc-style"))))
+				     (c-set-style "my/cc-style"))))
   (add-hook 'c++-mode-hook (function (lambda ()
                                        (define-key c++-mode-map "\C-c\C-c" 'make)
-                                       (c-set-style "my-cc-style"))))
+                                       (c-set-style "my/cc-style"))))
   (add-hook 'makefile-mode-hook (function (lambda ()
                                             (define-key makefile-mode-map "\C-c\C-c" 'make)
                                             (message "makefile-mode-hook ..."))))
@@ -332,15 +333,6 @@
   )
 
 
-(use-package plantuml-mode
-  :ensure t
-  :mode ("\\.p\\(lant\\)?u\\(ml\\)?\\'")
-  :config (progn
-            (setq plantuml-jar-path (expand-file-name "~/bin/plantuml.jar"))
-            (setq plantuml-output-type "png")
-            ;(setq plantuml-output-type "utxt")
-            (unless (file-exists-p plantuml-jar-path)
-              (message (format "plantuml not found at %s" plantuml-jar-path)))))
 
 
 ; --------------------------------------------------------
@@ -352,19 +344,6 @@
   (add-hook 'c++-mode-hook #'modern-c++-font-lock-mode)
   (add-hook 'c-mode-hook   #'modern-c++-font-lock-mode))
 
-; --------------------------------------------------------
-; Show colors instead of controlchars in shell and compilation
-; --------------------------------------------------------
-(use-package ansi-color
-  :config
-  (defun colorize-compilation-buffer ()
-    "Colorize the compilation buffer."
-    (read-only-mode)
-    (ansi-color-apply-on-region (point-min) (point-max))
-    (read-only-mode))
-  (add-hook 'compilation-filter-hook #'colorize-compilation-buffer))
-  ;; (autoload 'ansi-color-for-comint-mode-on "ansi-color" nil t)
-  ;; (add-hook 'shell-mode-hook #'ansi-color-for-comint-mode-on))
 
 (use-package fill-column-indicator
   :ensure t
@@ -409,6 +388,11 @@
 ;;(global-fci-mode 1)
 
 
+
+;; --------------------------------------------------------
+;; Go  (Search-tag: golang)
+;; --------------------------------------------------------
+
 ;; Improved replacement for electric-pair-mode
 (defun my/go-electric-brace ()
   "Insert an opening brace may be with the closing one.
@@ -435,110 +419,213 @@ inserted between the braces between the braces."
     (indent-for-tab-command)))
 
 (defun my/go-mode-hook ()
-  ;; Customize compile command to run go build
+  "Customize compile command to run go build."
   (setq compile-command "go build -v && go test -v && go vet && golint")
 
-  ;; Make sure only use company-go as company backend
-  (set (make-local-variable 'company-backends) '(company-go))
-  (company-mode))
+  ;; ;; Make sure only use company-go as company backend
+  ;; (set (make-local-variable 'company-backends) '(company-go))
+  ;; (company-mode)
+  )
+
 
 (use-package go-mode
   :ensure t
   :init
-  (progn
-    (setq gofmt-command "goimports")
-    (add-hook 'before-save-hook 'gofmt-before-save)
+  ;; Set up before-save hooks to format buffer and add/delete imports.
+  ;; Make sure you don't have other gofmt/goimports hooks enabled.
+  (add-hook 'before-save-hook #'lsp-format-buffer t t)
+  (add-hook 'before-save-hook #'lsp-organize-imports t t)
 
-    (setq go-dependencies
-          '("github.com/rogpeppe/godef"
-            "github.com/nsf/gocode"
-            "golang.org/x/tools/cmd/godoc"
-            "golang.org/x/tools/cmd/goimports"
-            "github.com/golang/lint/golint"
-            ;; copy oracle.el to go-guru.el in load-path
-            "golang.org/x/tools/cmd/guru"
-            ;; copy refactor/rename/rename.el to rename.el in load-path
-            "golang.org/x/tools/cmd/gorename"
-            ;;"github.com/derekparker/delve/cmd/dlv"
-            ;;"github.com/josharian/impl"
-            ;;"github.com/godoctor/godoctor"
-            ;;"github.com/davidrjenni/reftools/cmd/fillstruct"
-            ))
+  ;;   (progn
+;;     (setq gofmt-command "goimports")
+;;     (add-hook 'before-save-hook 'gofmt-before-save)
 
-    (defun go-bootstrap ()
-      (interactive)
-      (compile (concat "go get -x -u " (mapconcat 'identity go-dependencies " ")))))
+;;     (setq go-dependencies
+;;           '("github.com/rogpeppe/godef"
+;;             "github.com/nsf/gocode"
+;;             "golang.org/x/tools/cmd/godoc"
+;;             "golang.org/x/tools/cmd/goimports"
+;;             "github.com/golang/lint/golint"
+;;             ;; copy oracle.el to go-guru.el in load-path
+;;             "golang.org/x/tools/cmd/guru"
+;;             ;; copy refactor/rename/rename.el to rename.el in load-path
+;;             "golang.org/x/tools/cmd/gorename"
+;;             ;;"github.com/derekparker/delve/cmd/dlv"
+;;             ;;"github.com/josharian/impl"
+;;             ;;"github.com/godoctor/godoctor"
+;;             ;;"github.com/davidrjenni/reftools/cmd/fillstruct"
+;;             ))
+
+;;     (defun go-bootstrap ()
+;;       (interactive)
+;;       (compile (concat "go get -x -u " (mapconcat 'identity go-dependencies " ")))))
   :bind
   (:map go-mode-map
-        ("{" . my/go-electric-brace)
-        ("M-." . godef-jump)
-        ("M-*" . pop-tag-mark)
+        ("{" . my/go-electric-brace) ;; Auto-add end-brace
+        ;; ("M-." . godef-jump)
+        ;; ("M-*" . pop-tag-mark)
         ("<tab>" . my/indent-or-complete))
   :config
   (add-hook 'go-mode-hook 'my/go-mode-hook))
 
-(use-package company-go
-  :ensure t
-  :config
-  (setq company-go-show-annotation nil)) ;; Set to t for showing args in popup
+;; (use-package company-go
+;;   :ensure t
+;;   :config
+;;   (setq company-go-show-annotation nil)) ;; Set to t for showing args in popup
 
-(use-package go-eldoc
-  :ensure t
-  :init
-  (add-hook 'go-mode-hook 'go-eldoc-setup))
+;; (use-package go-eldoc
+;;   :ensure t
+;;   :init
+;;   (add-hook 'go-mode-hook 'go-eldoc-setup))
 
-(use-package flycheck-gometalinter
-  :ensure t
-  :config
-  (progn
-    (flycheck-gometalinter-setup)))
+;; (use-package flycheck-gometalinter
+;;   :ensure t
+;;   :config
+;;   (progn
+;;     (flycheck-gometalinter-setup)))
 
-(use-package go-guru
-  :demand t
-  :init
-  (add-hook 'go-mode-hook #'go-guru-hl-identifier-mode))
+;; (use-package go-guru
+;;   :demand t
+;;   :init
+;;   (add-hook 'go-mode-hook #'go-guru-hl-identifier-mode))
 
+;; --------------------------------------------------------
+;; Rust
+;; --------------------------------------------------------
+(use-package toml-mode
+  :ensure t)
 
-;; rustup self update
-;; rustup show
-;; # Set in ~/.bash_profile
-;; export RUST_SRC_PATH=$(rustc --print sysroot)/lib/rustlib/src/rust/src
-;; rustup toolchain add nightly
-;; rustup component add rust-src
-;; cargo +nightly install racer
-;; rustup component add rustfmt
+;; DEPRICATED !!
+;;;(use-package lsp-rust)
+
+;; ;; Add keybindings for interacting with Cargo
+;; (use-package cargo
+;;   :ensure t
+;;   :hook (rust-mode . cargo-minor-mode))
 
 (use-package rust-mode
   :ensure t
-  :mode "\\.rs\\'"
-  ;;:init
-  ;;(global-company-mode)
-
+;  :diminish cargo-minor-mode
+;  :hook (rust-mode . lsp)
   :config
-  ;; (use-package company-racer
-  ;;     :pin melpa)
-  ;; (use-package flycheck-rust
-  ;;     :pin melpa)
-  (use-package racer
-    :ensure t
-    :hook (rust-mode . racer-mode)
-    :config
-    (define-key rust-mode-map (kbd "M-\"") #'racer-find-definition)
-    (add-hook 'racer-mode-hook #'eldoc-mode)
-    (add-hook 'racer-mode-hook #'company-mode)
-    (local-set-key (kbd "TAB") #'company-indent-or-complete-common)
-    (setq company-tooltip-align-annotations t)
-    )
-  (defun my-rust-mode-hook()
-    ;; (set (make-local-variable 'compile-command "cargo run"))
-    (setq compile-command "cargo run")
-    (setq rust-format-on-save t)
-    (add-hook 'flycheck-mode-hook #'flycheck-rust-setup)
-    ;;(set (make-local-variable 'company-backends) '(company-racer))
-    ;;(local-set-key (kbd "TAB") #'racer-complete-or-indent)
-    )
-  (add-hook 'rust-mode-hook 'my-rust-mode-hook)
-  )
+  (setq rust-format-on-save t)
+  (setq lsp-rust-rls-server-command '("rustup" "run" "nightly" "rls")))
+
+(use-package flycheck-rust
+  :ensure t
+  :hook (flycheck-mode . flycheck-rust-setup))
+
+;; (use-package company
+;;   :ensure t
+;;   :hook (prog-mode . company-mode)
+;;   :config (setq company-tooltip-align-annotations t)
+;;           (setq company-minimum-prefix-length 1))
+
+
+
+
+
+;; (use-package rustic
+;;   :ensure t
+;;   :init
+;;   ;(setq lsp-prefer-flymake nil)
+;;   ;(rustic-flycheck-setup-mode-line-p nil)
+;;   :config
+;;   (setq lsp-enable-snippet nil)
+;;   (setq lsp-rust-rls-server-command '("rustup" "run" "nightly" "rls")))
+
+
+
+;; ;; rustup self update
+;; ;; rustup show
+;; ;; # Set in ~/.bash_profile
+;; ;; export RUST_SRC_PATH=$(rustc --print sysroot)/lib/rustlib/src/rust/src
+;; ;; rustup toolchain add nightly
+;; ;; rustup component add rust-src
+;; ;; cargo +nightly install racer
+;; ;; rustup component add rustfmt
+
+;; (use-package rust-mode
+;;   :ensure t
+;;   :mode "\\.rs\\'"
+;;   ;;:init
+;;   ;;(global-company-mode)
+
+;;   :config
+;;   ;; (use-package company-racer)
+;;   ;; (use-package flycheck-rust)
+;;   (use-package racer
+;;     :ensure t
+;;     :hook (rust-mode . racer-mode)
+;;     :config
+;;     (define-key rust-mode-map (kbd "M-\"") #'racer-find-definition)
+;;     (add-hook 'racer-mode-hook #'eldoc-mode)
+;;     (add-hook 'racer-mode-hook #'company-mode)
+;;     (local-set-key (kbd "TAB") #'company-indent-or-complete-common)
+;;     (setq company-tooltip-align-annotations t)
+;;     )
+;;   (defun my-rust-mode-hook()
+;;     ;; (set (make-local-variable 'compile-command "cargo run"))
+;;     (setq compile-command "cargo +nightly run")
+;;     (setq rust-format-on-save t)
+;;     (setq rust-match-angle-brackets nil) ;; https://github.com/rust-lang/rust-mode/issues/288
+;;     (add-hook 'flycheck-mode-hook #'flycheck-rust-setup)
+;;     ;;(set (make-local-variable 'company-backends) '(company-racer))
+;;     ;;(local-set-key (kbd "TAB") #'racer-complete-or-indent)
+;;     )
+;;   (add-hook 'rust-mode-hook 'my-rust-mode-hook)
+;;   )
+
+;; --------------------------------------------------------
+;; Erlang
+;; --------------------------------------------------------
+(use-package erlang
+  :ensure t)
+
+
+;; --------------------------------------------------------
+;; Sh
+;; --------------------------------------------------------
+(add-hook 'sh-mode-hook 'flycheck-mode)
+
+
+;;----------------------------------------------------------------------------
+;; Other modes
+;;----------------------------------------------------------------------------
+
+;; Terraform
+(use-package terraform-mode
+  :ensure t
+  :pin melpa-stable
+  :config
+  (add-hook 'terraform-mode-hook #'terraform-format-on-save-mode))
+
+;; PlantUML
+(use-package plantuml-mode
+  :ensure t
+  :mode ("\\.p\\(lant\\)?u\\(ml\\)?\\'")
+  :config (progn
+            (setq plantuml-jar-path (expand-file-name "~/bin/plantuml.jar"))
+            (setq plantuml-output-type "png")
+            ;(setq plantuml-output-type "utxt")
+            (unless (file-exists-p plantuml-jar-path)
+              (message (format "plantuml not found at %s" plantuml-jar-path)))))
+
+(use-package yaml-mode
+  :ensure t)
+
+(use-package groovy-mode
+  :ensure t
+  :mode ("Jenkinsfile.*\\'" . groovy-mode))
+
+(use-package markdown-mode
+  :ensure t
+  :commands (markdown-mode gfm-mode)
+  :mode (("README\\.md\\'" . gfm-mode)
+         ("\\.md\\'" . markdown-mode)
+         ("\\.markdown\\'" . markdown-mode))
+  :init (setq markdown-command "multimarkdown"))
+
 
 ;;----------------------------------------------------------------------------
 ;; Allow access from emacsclient
@@ -553,15 +640,16 @@ inserted between the braces between the braces."
     (server-start)))
 
 (use-package projectile
-    :diminish projectile-mode
-    :init
-    (setq projectile-keymap-prefix (kbd "C-c C-p"))
-    :config
-    (projectile-global-mode))
+  :ensure t
+  ;; :init
+  ;; (setq projectile-keymap-prefix (kbd "C-c C-p"))
+  :config
+  (define-key projectile-mode-map (kbd "s-p") 'projectile-command-map)
+  (define-key projectile-mode-map (kbd "C-c p") 'projectile-command-map)
+  (projectile-mode +1))
 
 (use-package treemacs
   :ensure t
-  :pin melpa
   :defer t
   :config
   (progn
@@ -609,6 +697,8 @@ inserted between the braces between the braces."
 (use-package asn1-mode
   :load-path "lisp/asn1-mode/")
 
+;; Make sure flymake stays quiet
+(remove-hook 'flymake-diagnostic-functions 'flymake-proc-legacy-flymake)
 
 ;;======================================
 ;; *shell*
@@ -628,6 +718,27 @@ inserted between the braces between the braces."
 ;; No trailing whitespace in Buffer menu
 (add-hook 'buffer-menu-mode-hook
 	  (lambda () (setq-local show-trailing-whitespace nil)))
+
+(setq ansi-color-names-vector
+      ["black" "tomato" "PaleGreen2" "gold1"
+       "DeepSkyBlue1" "MediumOrchid1" "cyan" "white"])
+
+(setq ansi-color-map (ansi-color-make-color-map))
+
+; --------------------------------------------------------
+; Show colors instead of controlchars in shell and compilation
+; --------------------------------------------------------
+(use-package ansi-color
+  :config
+  (defun colorize-compilation-buffer ()
+    "Colorize the compilation buffer."
+    (read-only-mode)
+    (ansi-color-apply-on-region (point-min) (point-max))
+   (read-only-mode))
+  (add-hook 'compilation-filter-hook #'colorize-compilation-buffer))
+  ;; (autoload 'ansi-color-for-comint-mode-on "ansi-color" nil t)
+  ;; (add-hook 'shell-mode-hook #'ansi-color-for-comint-mode-on))
+
 
 
 (defun send-current-line-to-process (arg beg end)
@@ -984,7 +1095,7 @@ inserted between the braces between the braces."
  '(line-number-mode t)
  '(package-selected-packages
    (quote
-    (hcl-mode terraform-mode treemacs-projectile treemacs flycheck-gometalinter go-eldoc company-go go-mode fill-column-indicator modern-cpp-font-lock plantuml-mode magit cmake-mode company-flx company-quickhelp company-statistics company irony flycheck-vale flycheck-rtags flycheck markdown-mode groovy-mode yaml-mode dockerfile-mode docker smex evil-matchit color-theme-solarized color-theme exec-path-from-shell use-package)))
+    (projectile yasnippet lsp-mode flycheck-rust cargo toml-mode hcl-mode terraform-mode treemacs-projectile treemacs flycheck-gometalinter go-eldoc company-go go-mode fill-column-indicator modern-cpp-font-lock plantuml-mode magit cmake-mode company-flx company-quickhelp company-statistics company irony flycheck-vale flycheck-rtags flycheck markdown-mode groovy-mode yaml-mode dockerfile-mode docker smex evil-matchit color-theme-solarized color-theme exec-path-from-shell use-package)))
  '(show-trailing-whitespace t)
  '(solarized-termcolors 256)
  '(tool-bar-mode nil))
@@ -996,9 +1107,5 @@ inserted between the braces between the braces."
 ;;*********************************************************
 (message "Loading ~/.emacs.d/init.el done")
 ;;*********************************************************
-(custom-set-faces
- ;; custom-set-faces was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- )
+(provide 'init)
+;;; init.el ends here
