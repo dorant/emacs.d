@@ -41,7 +41,7 @@
   (exec-path-from-shell-initialize))
 
 ;; --------------------------------------------------------
-;; Initiate helpers and modes
+;; Initiate visuals
 ;; --------------------------------------------------------
 
 ;; Themes and powerline (i.e. infobar)
@@ -68,6 +68,9 @@
 (setq split-width-threshold nil)
 ;;(setq split-height-threshold nil)
 
+;; --------------------------------------------------------
+;; Initiate helpers and modes
+;; --------------------------------------------------------
 
 ;; Jump between matching tags
 (use-package evil-matchit
@@ -106,17 +109,6 @@
 ;;        trap-verbose 9
 ;;        tramp-ssh-controlmaster-options
 
-;; Docker
-(use-package docker
-  :ensure t)
-
-(use-package dockerfile-mode
-  :ensure t
-  :mode "Dockerfile.*\\'")
-
-(use-package docker-tramp
-  :ensure t)
-
 ;; ;; NOT READY: Find using rtags, or else tags
 ;; (defun my-find-symbol (next-p)
 ;;   (interactive "P")
@@ -133,22 +125,32 @@
 ;; --------------------------------------------------------
 ;; Common language tools
 ;; --------------------------------------------------------
+(use-package projectile
+  :ensure t
+  ;; :init
+  ;; (setq projectile-keymap-prefix (kbd "C-c C-p"))
+  :config
+  (define-key projectile-mode-map (kbd "s-p") 'projectile-command-map)
+  (define-key projectile-mode-map (kbd "C-c p") 'projectile-command-map)
+  (projectile-mode +1))
+; LSP uses projectile to find root
 
 (use-package lsp-mode
   :ensure t
-  :commands (lsp lsp-deferred)
-  :hook ((rust-mode go-mode) . lsp-deferred))
+  ;; uncomment to enable gopls http debug server
+  ;; :custom (lsp-gopls-server-args '("-debug" "127.0.0.1:0"))
+  :commands (lsp lsp-deferred))
 
 ;; provides fancier overlays (like helptext)
 ;; (use-package lsp-ui
 ;;   :ensure t
-;;   :commands lsp-ui-mode)
-
-;; company-lsp integrates company mode completion with lsp-mode.
-;; completion-at-point also works out of the box but doesn't support snippets.
-(use-package company-lsp
-  :ensure t
-  :commands company-lsp)
+;;   :commands lsp-ui-mode
+;; :config (progn
+;;           ;; disable inline documentation
+;;           (setq lsp-ui-sideline-enable nil)
+;;           ;; disable showing docs on hover at the top of the window
+;;           (setq lsp-ui-doc-enable nil))
+;; )
 
 ;; ;; Optional - provides snippet support.
 ;; (use-package yasnippet
@@ -191,6 +193,13 @@
     :config
     (company-flx-mode t))
 )
+
+;; company-lsp integrates company mode completion with lsp-mode.
+;; completion-at-point also works out of the box but doesn't support snippets.
+(use-package company-lsp
+  :ensure t
+  :commands company-lsp)
+
 
 (use-package rtags
   :load-path "~/bin/rtags/share/emacs/site-lisp/rtags/"
@@ -257,19 +266,6 @@
   ;;(add-hook 'irony-mode-hook 'irony-cdb-autosetup-compile-options)
   )
 
-
-
-;; CMake color
-(use-package cmake-mode
-  :ensure t)
-
-;; Git
-(use-package magit
-  :ensure t
-  :bind ("\C-xg" . magit-status))
-
-;; (use-package magit-gerrit
-;;   :ensure t)
 
 
 ;; --------------------------------------------------------
@@ -420,6 +416,14 @@ inserted between the braces between the braces."
 
 (defun my/go-mode-hook ()
   "Customize compile command to run go build."
+
+  ;; Set up before-save hooks to format buffer and add/delete imports.
+  ;; Make sure you don't have other gofmt/goimports hooks enabled.
+;;  (add-hook 'before-save-hook #'lsp-format-buffer t t)
+;;  (add-hook 'before-save-hook #'lsp-organize-imports t t)
+
+  ;; (add-hook 'before-save-hook 'gofmt-before-save)
+
   (setq compile-command "go build -v && go test -v && go vet && golint")
 
   ;; ;; Make sure only use company-go as company backend
@@ -427,46 +431,21 @@ inserted between the braces between the braces."
   ;; (company-mode)
   )
 
-
 (use-package go-mode
   :ensure t
-  :init
-  ;; Set up before-save hooks to format buffer and add/delete imports.
-  ;; Make sure you don't have other gofmt/goimports hooks enabled.
-  (add-hook 'before-save-hook #'lsp-format-buffer t t)
-  (add-hook 'before-save-hook #'lsp-organize-imports t t)
-
   ;;   (progn
-;;     (setq gofmt-command "goimports")
-;;     (add-hook 'before-save-hook 'gofmt-before-save)
+  ;;     (setq gofmt-command "goimports")
+  :bind (
+         :map go-mode-map
+              ("{" . my/go-electric-brace) ;; Auto-add end-brace
+              ("<tab>" . my/indent-or-complete))
+              ;; ("M-." . godef-jump)
+              ;; ("M-*" . pop-tag-mark)
+  :hook ((go-mode . lsp-deferred)
+         (go-mode . my/go-mode-hook)
+         (before-save . lsp-format-buffer)
+         (before-save . lsp-organize-imports)))
 
-;;     (setq go-dependencies
-;;           '("github.com/rogpeppe/godef"
-;;             "github.com/nsf/gocode"
-;;             "golang.org/x/tools/cmd/godoc"
-;;             "golang.org/x/tools/cmd/goimports"
-;;             "github.com/golang/lint/golint"
-;;             ;; copy oracle.el to go-guru.el in load-path
-;;             "golang.org/x/tools/cmd/guru"
-;;             ;; copy refactor/rename/rename.el to rename.el in load-path
-;;             "golang.org/x/tools/cmd/gorename"
-;;             ;;"github.com/derekparker/delve/cmd/dlv"
-;;             ;;"github.com/josharian/impl"
-;;             ;;"github.com/godoctor/godoctor"
-;;             ;;"github.com/davidrjenni/reftools/cmd/fillstruct"
-;;             ))
-
-;;     (defun go-bootstrap ()
-;;       (interactive)
-;;       (compile (concat "go get -x -u " (mapconcat 'identity go-dependencies " ")))))
-  :bind
-  (:map go-mode-map
-        ("{" . my/go-electric-brace) ;; Auto-add end-brace
-        ;; ("M-." . godef-jump)
-        ;; ("M-*" . pop-tag-mark)
-        ("<tab>" . my/indent-or-complete))
-  :config
-  (add-hook 'go-mode-hook 'my/go-mode-hook))
 
 ;; (use-package company-go
 ;;   :ensure t
@@ -495,86 +474,89 @@ inserted between the braces between the braces."
 (use-package toml-mode
   :ensure t)
 
+(use-package rustic
+  :ensure t
+  :init
+  (setq rustic-format-trigger 'on-save)
+  ;(setq lsp-prefer-flymake nil)
+  ;(rustic-flycheck-setup-mode-line-p nil)
+  ;; :config
+  ;; (setq lsp-enable-snippet nil)
+  ;; (setq lsp-rust-rls-server-command '("rustup" "run" "nightly" "rls"))
+  )
+
 ;; DEPRICATED !!
 ;;;(use-package lsp-rust)
 
-;; ;; Add keybindings for interacting with Cargo
-;; (use-package cargo
-;;   :ensure t
-;;   :hook (rust-mode . cargo-minor-mode))
-
-(use-package rust-mode
-  :ensure t
-;  :diminish cargo-minor-mode
-;  :hook (rust-mode . lsp)
-  :config
-  (setq rust-format-on-save t)
-  (setq lsp-rust-rls-server-command '("rustup" "run" "nightly" "rls")))
-
-(use-package flycheck-rust
-  :ensure t
-  :hook (flycheck-mode . flycheck-rust-setup))
-
-;; (use-package company
-;;   :ensure t
-;;   :hook (prog-mode . company-mode)
-;;   :config (setq company-tooltip-align-annotations t)
-;;           (setq company-minimum-prefix-length 1))
-
-
-
-
-
-;; (use-package rustic
-;;   :ensure t
-;;   :init
-;;   ;(setq lsp-prefer-flymake nil)
-;;   ;(rustic-flycheck-setup-mode-line-p nil)
-;;   :config
-;;   (setq lsp-enable-snippet nil)
-;;   (setq lsp-rust-rls-server-command '("rustup" "run" "nightly" "rls")))
-
-
-
-;; ;; rustup self update
-;; ;; rustup show
-;; ;; # Set in ~/.bash_profile
-;; ;; export RUST_SRC_PATH=$(rustc --print sysroot)/lib/rustlib/src/rust/src
-;; ;; rustup toolchain add nightly
-;; ;; rustup component add rust-src
-;; ;; cargo +nightly install racer
-;; ;; rustup component add rustfmt
+;; ;; ;; Add keybindings for interacting with Cargo
+;; ;; (use-package cargo
+;; ;;   :ensure t
+;; ;;   :hook (rust-mode . cargo-minor-mode))
 
 ;; (use-package rust-mode
 ;;   :ensure t
-;;   :mode "\\.rs\\'"
-;;   ;;:init
-;;   ;;(global-company-mode)
-
+;; ;  :diminish cargo-minor-mode
+;; ;  :hook (rust-mode . lsp)
 ;;   :config
-;;   ;; (use-package company-racer)
-;;   ;; (use-package flycheck-rust)
-;;   (use-package racer
-;;     :ensure t
-;;     :hook (rust-mode . racer-mode)
-;;     :config
-;;     (define-key rust-mode-map (kbd "M-\"") #'racer-find-definition)
-;;     (add-hook 'racer-mode-hook #'eldoc-mode)
-;;     (add-hook 'racer-mode-hook #'company-mode)
-;;     (local-set-key (kbd "TAB") #'company-indent-or-complete-common)
-;;     (setq company-tooltip-align-annotations t)
-;;     )
-;;   (defun my-rust-mode-hook()
-;;     ;; (set (make-local-variable 'compile-command "cargo run"))
-;;     (setq compile-command "cargo +nightly run")
-;;     (setq rust-format-on-save t)
-;;     (setq rust-match-angle-brackets nil) ;; https://github.com/rust-lang/rust-mode/issues/288
-;;     (add-hook 'flycheck-mode-hook #'flycheck-rust-setup)
-;;     ;;(set (make-local-variable 'company-backends) '(company-racer))
-;;     ;;(local-set-key (kbd "TAB") #'racer-complete-or-indent)
-;;     )
-;;   (add-hook 'rust-mode-hook 'my-rust-mode-hook)
-;;   )
+;;   (setq rust-format-on-save t)
+;;   (setq lsp-rust-rls-server-command '("rustup" "run" "nightly" "rls")))
+
+;; ;; (use-package flycheck-rust
+;; ;;   :ensure t
+;; ;;   :hook (flycheck-mode . flycheck-rust-setup))
+
+;; ;; (use-package company
+;; ;;   :ensure t
+;; ;;   :hook (prog-mode . company-mode)
+;; ;;   :config (setq company-tooltip-align-annotations t)
+;; ;;           (setq company-minimum-prefix-length 1))
+
+
+
+
+
+
+
+
+;; ;; ;; rustup self update
+;; ;; ;; rustup show
+;; ;; ;; # Set in ~/.bash_profile
+;; ;; ;; export RUST_SRC_PATH=$(rustc --print sysroot)/lib/rustlib/src/rust/src
+;; ;; ;; rustup toolchain add nightly
+;; ;; ;; rustup component add rust-src
+;; ;; ;; cargo +nightly install racer
+;; ;; ;; rustup component add rustfmt
+
+;; ;; (use-package rust-mode
+;; ;;   :ensure t
+;; ;;   :mode "\\.rs\\'"
+;; ;;   ;;:init
+;; ;;   ;;(global-company-mode)
+
+;; ;;   :config
+;; ;;   ;; (use-package company-racer)
+;; ;;   ;; (use-package flycheck-rust)
+;; ;;   (use-package racer
+;; ;;     :ensure t
+;; ;;     :hook (rust-mode . racer-mode)
+;; ;;     :config
+;; ;;     (define-key rust-mode-map (kbd "M-\"") #'racer-find-definition)
+;; ;;     (add-hook 'racer-mode-hook #'eldoc-mode)
+;; ;;     (add-hook 'racer-mode-hook #'company-mode)
+;; ;;     (local-set-key (kbd "TAB") #'company-indent-or-complete-common)
+;; ;;     (setq company-tooltip-align-annotations t)
+;; ;;     )
+;; ;;   (defun my-rust-mode-hook()
+;; ;;     ;; (set (make-local-variable 'compile-command "cargo run"))
+;; ;;     (setq compile-command "cargo +nightly run")
+;; ;;     (setq rust-format-on-save t)
+;; ;;     (setq rust-match-angle-brackets nil) ;; https://github.com/rust-lang/rust-mode/issues/288
+;; ;;     (add-hook 'flycheck-mode-hook #'flycheck-rust-setup)
+;; ;;     ;;(set (make-local-variable 'company-backends) '(company-racer))
+;; ;;     ;;(local-set-key (kbd "TAB") #'racer-complete-or-indent)
+;; ;;     )
+;; ;;   (add-hook 'rust-mode-hook 'my-rust-mode-hook)
+;; ;;   )
 
 ;; --------------------------------------------------------
 ;; Erlang
@@ -626,6 +608,28 @@ inserted between the braces between the braces."
          ("\\.markdown\\'" . markdown-mode))
   :init (setq markdown-command "multimarkdown"))
 
+;; Docker
+(use-package docker
+  :ensure t)
+
+(use-package dockerfile-mode
+  :ensure t
+  :mode "Dockerfile.*\\'")
+
+(use-package docker-tramp
+  :ensure t)
+
+;; CMake color
+(use-package cmake-mode
+  :ensure t)
+
+;; Git
+(use-package magit
+  :ensure t
+  :bind ("\C-xg" . magit-status))
+
+;; (use-package magit-gerrit
+;;   :ensure t)
 
 ;;----------------------------------------------------------------------------
 ;; Allow access from emacsclient
@@ -638,15 +642,6 @@ inserted between the braces between the braces."
   :config
   (unless (server-running-p)
     (server-start)))
-
-(use-package projectile
-  :ensure t
-  ;; :init
-  ;; (setq projectile-keymap-prefix (kbd "C-c C-p"))
-  :config
-  (define-key projectile-mode-map (kbd "s-p") 'projectile-command-map)
-  (define-key projectile-mode-map (kbd "C-c p") 'projectile-command-map)
-  (projectile-mode +1))
 
 (use-package treemacs
   :ensure t
@@ -687,6 +682,7 @@ inserted between the braces between the braces."
        (treemacs-git-mode 'extended))
       (`(t . _)
        (treemacs-git-mode 'simple)))))
+
 (use-package treemacs-projectile
   :defer t
   :ensure t
