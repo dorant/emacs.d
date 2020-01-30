@@ -72,6 +72,11 @@
 ;; Initiate helpers and modes
 ;; --------------------------------------------------------
 
+;; Make sure flymake stays quiet
+(flymake-mode -1)
+(remove-hook 'flymake-diagnostic-functions 'flymake-proc-legacy-flymake)
+
+
 ;; Jump between matching tags
 (use-package evil-matchit
   :ensure t
@@ -158,6 +163,9 @@
 ;;   :commands yas-minor-mode
 ;;   :hook (go-mode . yas-minor-mode))
 
+(use-package lsp-treemacs
+  :ensure t)
+
 ;; Completion
 (use-package company
   :ensure t
@@ -200,44 +208,10 @@
   :ensure t
   :commands company-lsp)
 
-
-(use-package rtags
-  :load-path "~/bin/rtags/share/emacs/site-lisp/rtags/"
-  :config
-  (setq rtags-autostart-diagnostics t
-        rtags-completions-enabled t)
-  (rtags-enable-standard-keybindings)
-;;  (add-to-list 'company-backends 'company-rtags)
-;;  (add-hook 'c-mode-common-hook 'rtags-start-process-unless-running))
-
-  ;; (define-key c-mode-base-map (kbd "M-.")
-  ;;    (function rtags-find-symbol-at-point))
-  ;; (define-key c-mode-base-map (kbd "M-,")
-  ;;    (function rtags-find-references-at-point))
-  ;; (define-key c-mode-base-map (kbd "M-*")
-  ;;    (function rtags-location-stack-back))
-  ;; (define-key c-mode-base-map (kbd "M-/")
-  ;;    (function rtags-find-all-references-at-point))
-)
-
-;;(require 'init-python-mode)           ;; Python mode
-
-(defun my/flycheck-rtags-hook ()
-  (flycheck-mode)
-  (flycheck-select-checker 'rtags)
-  (setq-local flycheck-check-syntax-automatically nil) ;; Let rtags trigger the check
-  (setq-local flycheck-highlighting-mode nil) ;; Use rtags own overlay/highlighting
-  )
-
 (use-package flycheck
   :ensure t
   :init
-  (global-flycheck-mode)
-  (add-hook 'c++-mode-hook #'my/flycheck-rtags-hook)
-
-  :config
-  (use-package flycheck-rtags
-    :ensure t))
+  (global-flycheck-mode))
 
 ;; Spellchecking
 (use-package flycheck-vale
@@ -245,145 +219,6 @@
   :defer t
   :after flycheck
   :config (flycheck-vale-setup))
-
-
-
-(defun my/irony-mode-hook ()
-  (define-key irony-mode-map [remap completion-at-point]
-    'irony-completion-at-point-async)
-  (define-key irony-mode-map [remap complete-symbol]
-    'irony-completion-at-point-async))
-
-(use-package irony
-  :ensure t
-  :init
-  (add-hook 'c++-mode-hook #'irony-mode)
-  (add-hook 'c-mode-hook #'irony-mode)
-  :config
-  ;; replace the `completion-at-point' and `complete-symbol' bindings in
-  ;; irony-mode's buffers by irony-mode's function
-  (add-hook 'irony-mode-hook #'my/irony-mode-hook)
-  ;;(add-hook 'irony-mode-hook 'irony-cdb-autosetup-compile-options)
-  )
-
-
-
-;; --------------------------------------------------------
-;; C++
-;; --------------------------------------------------------
-
-;; Define the coding style
-(defconst my/cc-style
-  '((c-tab-always-indent           . t)
-    (c-basic-offset                . 4)
-    (c-comment-only-line-offset    . 0)
-    (c-hanging-braces-alist (substatement-open before after))
-    (c-offsets-alist . ((topmost-intro        . 0) ;  the first line in a topmost construct definition
-                        (topmost-intro-cont   . 0) ;  topmost definition continuation lines
-                        (substatement         . 4) ;  the first line after an if/while/for/do/else
-                        (substatement-open    . 0) ;  the brace that opens a substatement block
-                        (statement-case-intro . 4) ;  the first line in a case `block'
-                        (case-label           . +) ;  a case or default label
-                        (access-label         . -4);  C++ private/protected/public access label
-                        (inclass              . 4) ;  the construct is nested inside a class definition
-                        (innamespace          . 0) ;  used inside C++ namespace constructs
-                        (inline-open          . 0) ;  brace that opens an in-class inline method
-                        (arglist-intro        . 0) ;  the first line in an argument list
-                        (arglist-close        . 0) ;  the solo close paren of an argument list
-                        (label                . 0) ;  any non-special C/C++/ObjC label
-                        ))
-    )
-  "My C/C++ Programming Style")
-
-(use-package cc-mode
-  :commands c++-mode
-  :mode ("\\.h\\\'" . c++-mode) ;; Let .h files be opened in C++ mode
-  :config
-  (setq c-recognize-knr-p nil) ;; Dont check for old-style (K&R) function declarations, this should speed up indenting
-  (c-add-style "my/cc-style" my/cc-style)
-
-  (add-hook 'c-mode-hook (function (lambda ()
-                                     (define-key c-mode-map "\C-c\C-c" 'make)
-				     (c-set-style "my/cc-style"))))
-  (add-hook 'c++-mode-hook (function (lambda ()
-                                       (define-key c++-mode-map "\C-c\C-c" 'make)
-                                       (c-set-style "my/cc-style"))))
-  (add-hook 'makefile-mode-hook (function (lambda ()
-                                            (define-key makefile-mode-map "\C-c\C-c" 'make)
-                                            (message "makefile-mode-hook ..."))))
-)
-
-; --------------------------------------------------------
-; Save buffer and compile
-; --------------------------------------------------------
-(defun make ()
-  "Runs a make program in current dir by invoking: `make-program'"
-  (interactive)
-  (if (and (not (eq (buffer-file-name) nil)) (buffer-modified-p))
-      (save-buffer)
-    )
-
-  (let ((tags (if current-prefix-arg  (read-input (concat make-program " ") "clean") "")))
-    (compile (concat make-program " " tags))
-    )
-  )
-
-
-
-
-; --------------------------------------------------------
-; Syntax highlighting support for "Modern C++" - until C++17
-; --------------------------------------------------------
-(use-package modern-cpp-font-lock
-  :ensure t
-  :config
-  (add-hook 'c++-mode-hook #'modern-c++-font-lock-mode)
-  (add-hook 'c-mode-hook   #'modern-c++-font-lock-mode))
-
-
-(use-package fill-column-indicator
-  :ensure t
-  :if (>= emacs-major-version 25)
-  :init
-  (setq fci-rule-column 80)
-  (setq fci-rule-color "#073642")
-  (setq fci-rule-width 2))
-
-;;  (add-hook 'markdown-mode-hook (lambda ()  (setq fci-rule-column 80)))
-
-(defun my/fci-enabled ()
-  (and (boundp 'fci-mode) fci-mode))
-
-(defvar my/fci-mode-suppressed nil)
-
-(defadvice popup-create (before suppress-fci-mode activate)
-  "Suspend fci-mode while popups are visible"
-  (let ((fci-enabled (my/fci-enabled)))
-    (when fci-enabled
-      (set (make-local-variable 'my/fci-mode-suppressed) fci-enabled)
-      (turn-off-fci-mode))))
-
-(defadvice popup-delete (after restore-fci-mode activate)
-  "Restore fci-mode when all popups have closed"
-  (when (and my/fci-mode-suppressed
-             (null popup-instances))
-    (setq my/fci-mode-suppressed nil)
-    (turn-on-fci-mode)))
-
-(defadvice enable-theme (after recompute-fci-face activate)
-  "Regenerate fci-mode line images after switching themes"
-  (dolist (buffer (buffer-list))
-    (with-current-buffer buffer
-      (turn-on-fci-mode))))
-
-(define-globalized-minor-mode global-fci-mode fci-mode
-  (lambda () (if (or (or (derived-mode-p 'prog-mode) (eq major-mode 'text-mode)) (eq major-mode 'markdown-mode))
-                 (fci-mode 1))))
-
-;; fci seems to distort company-mode graphics
-;;(global-fci-mode 1)
-
-
 
 ;; --------------------------------------------------------
 ;; Go  (Search-tag: golang)
@@ -417,13 +252,6 @@ inserted between the braces between the braces."
 (defun my/go-mode-hook ()
   "Customize compile command to run go build."
 
-  ;; Set up before-save hooks to format buffer and add/delete imports.
-  ;; Make sure you don't have other gofmt/goimports hooks enabled.
-;;  (add-hook 'before-save-hook #'lsp-format-buffer t t)
-;;  (add-hook 'before-save-hook #'lsp-organize-imports t t)
-
-  ;; (add-hook 'before-save-hook 'gofmt-before-save)
-
   (setq compile-command "go build -v && go test -v && go vet && golint")
 
   ;; ;; Make sure only use company-go as company backend
@@ -439,8 +267,6 @@ inserted between the braces between the braces."
          :map go-mode-map
               ("{" . my/go-electric-brace) ;; Auto-add end-brace
               ("<tab>" . my/indent-or-complete))
-              ;; ("M-." . godef-jump)
-              ;; ("M-*" . pop-tag-mark)
   :hook ((go-mode . lsp-deferred)
          (go-mode . my/go-mode-hook)
          (before-save . lsp-format-buffer)
@@ -467,6 +293,7 @@ inserted between the braces between the braces."
 ;;   :demand t
 ;;   :init
 ;;   (add-hook 'go-mode-hook #'go-guru-hl-identifier-mode))
+
 
 ;; --------------------------------------------------------
 ;; Rust
@@ -558,11 +385,176 @@ inserted between the braces between the braces."
 ;; ;;   (add-hook 'rust-mode-hook 'my-rust-mode-hook)
 ;; ;;   )
 
+
+;; --------------------------------------------------------
+;; C / C++
+;; --------------------------------------------------------
+(defun my/flycheck-rtags-hook ()
+  (flycheck-mode)
+  (flycheck-select-checker 'rtags)
+  (setq-local flycheck-check-syntax-automatically nil) ;; Let rtags trigger the check
+  (setq-local flycheck-highlighting-mode nil) ;; Use rtags own overlay/highlighting
+  )
+
+(use-package rtags
+  :load-path "~/bin/rtags/share/emacs/site-lisp/rtags/"
+  :config
+  (setq rtags-autostart-diagnostics t
+        rtags-completions-enabled t)
+  (rtags-enable-standard-keybindings)
+  (add-hook 'c++-mode-hook #'my/flycheck-rtags-hook)
+;;  (add-to-list 'company-backends 'company-rtags)
+;;  (add-hook 'c-mode-common-hook 'rtags-start-process-unless-running))
+
+  ;; (define-key c-mode-base-map (kbd "M-.")
+  ;;    (function rtags-find-symbol-at-point))
+  ;; (define-key c-mode-base-map (kbd "M-,")
+  ;;    (function rtags-find-references-at-point))
+  ;; (define-key c-mode-base-map (kbd "M-*")
+  ;;    (function rtags-location-stack-back))
+  ;; (define-key c-mode-base-map (kbd "M-/")
+  ;;    (function rtags-find-all-references-at-point))
+  )
+
+(use-package flycheck-rtags
+  :ensure t)
+
+
+(defun my/irony-mode-hook ()
+  (define-key irony-mode-map [remap completion-at-point]
+    'irony-completion-at-point-async)
+  (define-key irony-mode-map [remap complete-symbol]
+    'irony-completion-at-point-async))
+
+(use-package irony
+  :ensure t
+  :init
+  (add-hook 'c++-mode-hook #'irony-mode)
+  (add-hook 'c-mode-hook #'irony-mode)
+  :config
+  ;; replace the `completion-at-point' and `complete-symbol' bindings in
+  ;; irony-mode's buffers by irony-mode's function
+  (add-hook 'irony-mode-hook #'my/irony-mode-hook)
+  ;;(add-hook 'irony-mode-hook 'irony-cdb-autosetup-compile-options)
+  )
+
+;; Define the coding style
+(defconst my/cc-style
+  '((c-tab-always-indent           . t)
+    (c-basic-offset                . 4)
+    (c-comment-only-line-offset    . 0)
+    (c-hanging-braces-alist (substatement-open before after))
+    (c-offsets-alist . ((topmost-intro        . 0) ;  the first line in a topmost construct definition
+                        (topmost-intro-cont   . 0) ;  topmost definition continuation lines
+                        (substatement         . 4) ;  the first line after an if/while/for/do/else
+                        (substatement-open    . 0) ;  the brace that opens a substatement block
+                        (statement-case-intro . 4) ;  the first line in a case `block'
+                        (case-label           . +) ;  a case or default label
+                        (access-label         . -4);  C++ private/protected/public access label
+                        (inclass              . 4) ;  the construct is nested inside a class definition
+                        (innamespace          . 0) ;  used inside C++ namespace constructs
+                        (inline-open          . 0) ;  brace that opens an in-class inline method
+                        (arglist-intro        . 0) ;  the first line in an argument list
+                        (arglist-close        . 0) ;  the solo close paren of an argument list
+                        (label                . 0) ;  any non-special C/C++/ObjC label
+                        ))
+    )
+  "My C/C++ Programming Style.")
+
+(use-package cc-mode
+  :commands c++-mode
+  :mode ("\\.h\\\'" . c++-mode) ;; Let .h files be opened in C++ mode
+  :config
+  (setq c-recognize-knr-p nil) ;; Dont check for old-style (K&R) function declarations, this should speed up indenting
+  (c-add-style "my/cc-style" my/cc-style)
+
+  (add-hook 'c-mode-hook (function (lambda ()
+                                     (define-key c-mode-map "\C-c\C-c" 'make)
+				     (c-set-style "my/cc-style"))))
+  (add-hook 'c++-mode-hook (function (lambda ()
+                                       (define-key c++-mode-map "\C-c\C-c" 'make)
+                                       (c-set-style "my/cc-style"))))
+  (add-hook 'makefile-mode-hook (function (lambda ()
+                                            (define-key makefile-mode-map "\C-c\C-c" 'make)
+                                            (message "makefile-mode-hook ..."))))
+)
+
+; --------------------------------------------------------
+; Save buffer and compile
+; --------------------------------------------------------
+(defun make ()
+  "Run a make program in current dir by invoking: `make-program'."
+  (interactive)
+  (if (and (not (eq (buffer-file-name) nil)) (buffer-modified-p))
+      (save-buffer)
+    )
+
+  (let ((tags (if current-prefix-arg  (read-input (concat make-program " ") "clean") "")))
+    (compile (concat make-program " " tags))
+    )
+  )
+
+; --------------------------------------------------------
+; Syntax highlighting support for "Modern C++" - until C++17
+; --------------------------------------------------------
+(use-package modern-cpp-font-lock
+  :ensure t
+  :config
+  (add-hook 'c++-mode-hook #'modern-c++-font-lock-mode)
+  (add-hook 'c-mode-hook   #'modern-c++-font-lock-mode))
+
+
+(use-package fill-column-indicator
+  :ensure t
+  :if (>= emacs-major-version 25)
+  :init
+  (setq fci-rule-column 80)
+  (setq fci-rule-color "#073642")
+  (setq fci-rule-width 2))
+
+;;  (add-hook 'markdown-mode-hook (lambda ()  (setq fci-rule-column 80)))
+
+(defun my/fci-enabled ()
+  (and (boundp 'fci-mode) fci-mode))
+
+(defvar my/fci-mode-suppressed nil)
+
+(defadvice popup-create (before suppress-fci-mode activate)
+  "Suspend fci-mode while popups are visible."
+  (let ((fci-enabled (my/fci-enabled)))
+    (when fci-enabled
+      (set (make-local-variable 'my/fci-mode-suppressed) fci-enabled)
+      (turn-off-fci-mode))))
+
+(defadvice popup-delete (after restore-fci-mode activate)
+  "Restore fci-mode when all popups have closed."
+  (when (and my/fci-mode-suppressed
+             (null popup-instances))
+    (setq my/fci-mode-suppressed nil)
+    (turn-on-fci-mode)))
+
+(defadvice enable-theme (after recompute-fci-face activate)
+  "Regenerate fci-mode line images after switching themes."
+  (dolist (buffer (buffer-list))
+    (with-current-buffer buffer
+      (turn-on-fci-mode))))
+
+(define-globalized-minor-mode global-fci-mode fci-mode
+  (lambda () (if (or (or (derived-mode-p 'prog-mode) (eq major-mode 'text-mode)) (eq major-mode 'markdown-mode))
+                 (fci-mode 1))))
+
+;; fci seems to distort company-mode graphics
+;;(global-fci-mode 1)
+
+
 ;; --------------------------------------------------------
 ;; Erlang
 ;; --------------------------------------------------------
 (use-package erlang
-  :ensure t)
+  :ensure t
+  :mode (("rebar\\.config$" . erlang-mode)
+         ("elvis\\.config$" . erlang-mode))
+  )
 
 
 ;; --------------------------------------------------------
@@ -692,9 +684,6 @@ inserted between the braces between the braces."
 
 (use-package asn1-mode
   :load-path "lisp/asn1-mode/")
-
-;; Make sure flymake stays quiet
-(remove-hook 'flymake-diagnostic-functions 'flymake-proc-legacy-flymake)
 
 ;;======================================
 ;; *shell*
@@ -1105,3 +1094,9 @@ inserted between the braces between the braces."
 ;;*********************************************************
 (provide 'init)
 ;;; init.el ends here
+(custom-set-faces
+ ;; custom-set-faces was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ )

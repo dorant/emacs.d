@@ -31,3 +31,4 @@ setup-erlang:
 	-kerl install 22.2 ~/erlang/22.2
 	. ~/erlang/22.2/activate
 	wget https://github.com/erlang/rebar3/releases/download/3.13.0/rebar3 -O ~/bin/rebar3 && chmod u+x ~/bin/rebar3
+	dialyzer --build_plt --apps kernel stdlib erts mnesia eunit
