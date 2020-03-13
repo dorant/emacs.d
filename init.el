@@ -144,7 +144,8 @@
   :ensure t
   ;; uncomment to enable gopls http debug server
   ;; :custom (lsp-gopls-server-args '("-debug" "127.0.0.1:0"))
-  :commands (lsp lsp-deferred))
+  :commands (lsp lsp-deferred)
+  :hook (go-mode . lsp-deferred))
 
 ;; provides fancier overlays (like helptext)
 ;; (use-package lsp-ui
@@ -261,8 +262,8 @@ inserted between the braces between the braces."
 
 (use-package go-mode
   :ensure t
-  ;;   (progn
-  ;;     (setq gofmt-command "goimports")
+  ;; :init
+  ;; (setq gofmt-command "goimports")
   :bind (
          :map go-mode-map
               ("{" . my/go-electric-brace) ;; Auto-add end-brace
@@ -566,6 +567,12 @@ inserted between the braces between the braces."
 ;;----------------------------------------------------------------------------
 ;; Other modes
 ;;----------------------------------------------------------------------------
+;; Emacs mode for editing Cucumber plain text stories
+;; https://github.com/michaelklishin/cucumber.el
+(use-package feature-mode
+  :ensure t
+  :defer t
+  :mode ("\\.feature$"))
 
 ;; Terraform
 (use-package terraform-mode
@@ -622,6 +629,26 @@ inserted between the braces between the braces."
 
 ;; (use-package magit-gerrit
 ;;   :ensure t)
+
+;; HTML
+(use-package web-mode
+  :ensure t
+  :mode
+  (
+   ".html?$"
+   ".jsp$"
+   ".vue$"
+   )
+  :config
+  (setq
+   web-mode-markup-indent-offset 4
+   web-mode-css-indent-offset 4
+   web-mode-code-indent-offset 4
+   web-mode-enable-auto-closing t
+   web-mode-enable-auto-opening t
+   web-mode-enable-auto-pairing t
+   web-mode-enable-auto-indentation t
+   ))
 
 ;;----------------------------------------------------------------------------
 ;; Allow access from emacsclient
@@ -1073,14 +1100,13 @@ inserted between the braces between the braces."
  '(column-number-mode t)
  '(compilation-always-kill t)
  '(compilation-ask-about-save nil)
- '(compilation-scroll-output (quote first-error))
+ '(compilation-scroll-output 'first-error)
  '(compilation-skip-threshold 2)
- '(frame-background-mode (quote dark))
+ '(frame-background-mode 'dark)
  '(indent-tabs-mode nil)
  '(line-number-mode t)
  '(package-selected-packages
-   (quote
-    (projectile yasnippet lsp-mode flycheck-rust cargo toml-mode hcl-mode terraform-mode treemacs-projectile treemacs flycheck-gometalinter go-eldoc company-go go-mode fill-column-indicator modern-cpp-font-lock plantuml-mode magit cmake-mode company-flx company-quickhelp company-statistics company irony flycheck-vale flycheck-rtags flycheck markdown-mode groovy-mode yaml-mode dockerfile-mode docker smex evil-matchit color-theme-solarized color-theme exec-path-from-shell use-package)))
+   '(projectile yasnippet lsp-mode flycheck-rust cargo toml-mode hcl-mode terraform-mode treemacs-projectile treemacs flycheck-gometalinter go-eldoc company-go go-mode fill-column-indicator modern-cpp-font-lock plantuml-mode magit cmake-mode company-flx company-quickhelp company-statistics company irony flycheck-vale flycheck-rtags flycheck markdown-mode groovy-mode yaml-mode dockerfile-mode docker smex evil-matchit color-theme-solarized color-theme exec-path-from-shell use-package))
  '(show-trailing-whitespace t)
  '(solarized-termcolors 256)
  '(tool-bar-mode nil))
