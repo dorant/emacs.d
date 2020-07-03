@@ -20,7 +20,10 @@
                                ("melpa"        . "https://melpa.org/packages/")
                                ("gnu"          . "https://elpa.gnu.org/packages/"))
             use-package-always-pin "melpa"
-            use-package-verbose t)
+            use-package-verbose t
+            tls-checktrust t
+            tls-program '("gnutls-cli --x509cafile %t -p %p %h")
+            gnutls-verify-error t)
       (require 'package)
       (package-initialize)
       (unless (package-installed-p 'use-package)
@@ -39,6 +42,14 @@
   :config
   (setq exec-path-from-shell-variables '("PATH" "GOPATH" "RUST_SRC_PATH"))
   (exec-path-from-shell-initialize))
+
+(use-package auto-package-update
+  :ensure t
+  :config
+  (setq auto-package-update-delete-old-versions t
+        auto-package-update-interval 90
+        auto-package-update-prompt-before-update t)
+  (auto-package-update-maybe))
 
 ;; --------------------------------------------------------
 ;; Initiate visuals
@@ -71,6 +82,9 @@
 ;; --------------------------------------------------------
 ;; Initiate helpers and modes
 ;; --------------------------------------------------------
+
+;; Dont create lockfiles for files that is currently edited .#xxx
+(setq create-lockfiles nil)
 
 ;; Make sure flymake stays quiet
 (flymake-mode -1)
@@ -140,13 +154,6 @@
   (projectile-mode +1))
 ; LSP uses projectile to find root
 
-(use-package lsp-mode
-  :ensure t
-  ;; uncomment to enable gopls http debug server
-  ;; :custom (lsp-gopls-server-args '("-debug" "127.0.0.1:0"))
-  :commands (lsp lsp-deferred)
-  :hook (go-mode . lsp-deferred))
-
 ;; provides fancier overlays (like helptext)
 ;; (use-package lsp-ui
 ;;   :ensure t
@@ -170,11 +177,10 @@
 ;; Completion
 (use-package company
   :ensure t
+  :hook (after-init . global-company-mode)
   :bind ([C-tab] . company-complete)
-  :init
-  (add-hook 'after-init-hook #'global-company-mode)
   :config
-  (setq company-idle-delay nil
+  (setq company-idle-delay nil ; avoid autocompletion popup, use C+TAB
         company-minimum-prefix-length 2
         company-show-numbers nil
         company-tooltip-limit 15
@@ -207,12 +213,25 @@
 ;; completion-at-point also works out of the box but doesn't support snippets.
 (use-package company-lsp
   :ensure t
-  :commands company-lsp)
+  :defer)
+
+(use-package lsp-mode
+  :ensure t
+  ;; uncomment to enable gopls http debug server
+  ;; :custom (lsp-gopls-server-args '("-debug" "127.0.0.1:0"))
+  :commands (lsp lsp-deferred)
+  :hook ((before-save . lsp-format-buffer)
+	 (before-save . lsp-organize-imports)))
+
+;; Hide mode info from modeline when requested
+(use-package delight
+  :ensure t
+  :pin melpa-stable)
 
 (use-package flycheck
   :ensure t
-  :init
-  (global-flycheck-mode))
+  :delight
+  :config (global-flycheck-mode))
 
 ;; Spellchecking
 (use-package flycheck-vale
@@ -252,27 +271,23 @@ inserted between the braces between the braces."
 
 (defun my/go-mode-hook ()
   "Customize compile command to run go build."
+  (setq compile-command (concat "echo Building... && go build -v && "
+                                "echo Testing... && go test -v && "
+                                "echo Linters... && golint && go vet")))
 
-  (setq compile-command "go build -v && go test -v && go vet && golint")
-
-  ;; ;; Make sure only use company-go as company backend
-  ;; (set (make-local-variable 'company-backends) '(company-go))
-  ;; (company-mode)
-  )
+(use-package go-guru
+  :ensure t
+  :after go-mode)
 
 (use-package go-mode
   :ensure t
-  ;; :init
-  ;; (setq gofmt-command "goimports")
-  :bind (
-         :map go-mode-map
+  :init (setq go-fontify-function-calls nil)
+  ;; :init (setq gofmt-command "goimports")
+  :bind (:map go-mode-map
               ("{" . my/go-electric-brace) ;; Auto-add end-brace
               ("<tab>" . my/indent-or-complete))
   :hook ((go-mode . lsp-deferred)
-         (go-mode . my/go-mode-hook)
-         (before-save . lsp-format-buffer)
-         (before-save . lsp-organize-imports)))
-
+         (go-mode . my/go-mode-hook)))
 
 ;; (use-package company-go
 ;;   :ensure t
@@ -290,11 +305,6 @@ inserted between the braces between the braces."
 ;;   (progn
 ;;     (flycheck-gometalinter-setup)))
 
-;; (use-package go-guru
-;;   :demand t
-;;   :init
-;;   (add-hook 'go-mode-hook #'go-guru-hl-identifier-mode))
-
 
 ;; --------------------------------------------------------
 ;; Rust
@@ -306,6 +316,7 @@ inserted between the braces between the braces."
   :ensure t
   :init
   (setq rustic-format-trigger 'on-save)
+  (setq rustic-lsp-server 'rust-analyzer)
   ;(setq lsp-prefer-flymake nil)
   ;(rustic-flycheck-setup-mode-line-p nil)
   ;; :config
@@ -398,7 +409,7 @@ inserted between the braces between the braces."
   )
 
 (use-package rtags
-  :load-path "~/bin/rtags/share/emacs/site-lisp/rtags/"
+  ;; :load-path "~/bin/rtags/share/emacs/site-lisp/rtags/"
   :config
   (setq rtags-autostart-diagnostics t
         rtags-completions-enabled t)
@@ -551,12 +562,35 @@ inserted between the braces between the braces."
 ;; --------------------------------------------------------
 ;; Erlang
 ;; --------------------------------------------------------
+(use-package ivy-erlang-complete
+  :ensure t
+  :pin melpa-stable)
+
+(use-package company-erlang
+  :ensure t
+  :pin melpa-stable)
+
 (use-package erlang
   :ensure t
-  :mode (("rebar\\.config$" . erlang-mode)
+  :load-path (lambda () (substitute-in-file-name "${_KERL_ACTIVE_DIR}/lib/tools-3.3/emacs/"))
+  ;; :hook (before-save . erlang-indent-current-buffer)
+  :hook (after-save . ivy-erlang-complete-reparse)
+  :custom (ivy-erlang-complete-erlang-root (substitute-in-file-name "${_KERL_ACTIVE_DIR}/"))
+  :config (ivy-erlang-complete-init)
+  :mode (("\\.erl?$" . erlang-mode)
+	 ("rebar\\.config$" . erlang-mode)
+	 ("relx\\.config$" . erlang-mode)
+	 ("sys\\.config\\.src$" . erlang-mode)
+	 ("sys\\.config$" . erlang-mode)
+	 ("\\.config\\.src?$" . erlang-mode)
+	 ("\\.config\\.script?$" . erlang-mode)
+	 ("\\.hrl?$" . erlang-mode)
+	 ("\\.app?$" . erlang-mode)
+	 ("\\.app.src?$" . erlang-mode)
+	 ("\\Emakefile" . erlang-mode)
          ("elvis\\.config$" . erlang-mode))
-  )
-
+  :config
+  (setq erlang-indent-level 4))
 
 ;; --------------------------------------------------------
 ;; Sh
@@ -998,7 +1032,7 @@ inserted between the braces between the braces."
 
 (defun rename-file-and-buffer (new-name)
   "Renames both current buffer and file it's visiting to NEW-NAME."
-  (interactive "sNew name: ")
+  (interactive "New name: ")
   (let ((name (buffer-name))
 	(filename (buffer-file-name)))
     (if (not filename)
@@ -1012,7 +1046,7 @@ inserted between the braces between the braces."
 
 (defun move-buffer-file (dir)
   "Moves both current buffer and file it's visiting to DIR."
-  (interactive "DNew directory: ")
+  (interactive "New directory: ")
   (let* ((name (buffer-name))
 	 (filename (buffer-file-name))
 	 (dir
@@ -1106,7 +1140,7 @@ inserted between the braces between the braces."
  '(indent-tabs-mode nil)
  '(line-number-mode t)
  '(package-selected-packages
-   '(projectile yasnippet lsp-mode flycheck-rust cargo toml-mode hcl-mode terraform-mode treemacs-projectile treemacs flycheck-gometalinter go-eldoc company-go go-mode fill-column-indicator modern-cpp-font-lock plantuml-mode magit cmake-mode company-flx company-quickhelp company-statistics company irony flycheck-vale flycheck-rtags flycheck markdown-mode groovy-mode yaml-mode dockerfile-mode docker smex evil-matchit color-theme-solarized color-theme exec-path-from-shell use-package))
+   '(company-erlang ivy-erlang-complete projectile yasnippet lsp-mode flycheck-rust cargo toml-mode hcl-mode terraform-mode treemacs-projectile treemacs flycheck-gometalinter go-eldoc company-go go-mode fill-column-indicator modern-cpp-font-lock plantuml-mode magit cmake-mode company-flx company-quickhelp company-statistics company irony flycheck-vale flycheck-rtags flycheck markdown-mode groovy-mode yaml-mode dockerfile-mode docker smex evil-matchit color-theme-solarized color-theme exec-path-from-shell use-package))
  '(show-trailing-whitespace t)
  '(solarized-termcolors 256)
  '(tool-bar-mode nil))
