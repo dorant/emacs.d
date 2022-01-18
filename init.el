@@ -128,6 +128,9 @@
 ;;        trap-verbose 9
 ;;        tramp-ssh-controlmaster-options
 
+(use-package vagrant-tramp
+  :ensure t)
+
 ;; ;; NOT READY: Find using rtags, or else tags
 ;; (defun my-find-symbol (next-p)
 ;;   (interactive "P")
