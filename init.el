@@ -40,7 +40,7 @@
   :ensure t
   :if (string-equal system-type "darwin")
   :config
-  (setq exec-path-from-shell-variables '("PATH" "GOPATH" "RUST_SRC_PATH"))
+  (setq exec-path-from-shell-variables '("PATH" "GOPATH" "RUST_SRC_PATH", "JAVA_HOME"))
   (exec-path-from-shell-initialize))
 
 (use-package auto-package-update
@@ -157,25 +157,11 @@
   (projectile-mode +1))
 ; LSP uses projectile to find root
 
-;; provides fancier overlays (like helptext)
-;; (use-package lsp-ui
-;;   :ensure t
-;;   :commands lsp-ui-mode
-;; :config (progn
-;;           ;; disable inline documentation
-;;           (setq lsp-ui-sideline-enable nil)
-;;           ;; disable showing docs on hover at the top of the window
-;;           (setq lsp-ui-doc-enable nil))
-;; )
-
 ;; ;; Optional - provides snippet support.
 ;; (use-package yasnippet
 ;;   :ensure t
 ;;   :commands yas-minor-mode
 ;;   :hook (go-mode . yas-minor-mode))
-
-(use-package lsp-treemacs
-  :ensure t)
 
 ;; Completion
 (use-package company
@@ -213,23 +199,48 @@
 )
 
 ;; company-lsp integrates company mode completion with lsp-mode.
+;; NOT supported by gopls anymore
 ;; completion-at-point also works out of the box but doesn't support snippets.
-(use-package company-lsp
-  :ensure t
-  :defer)
+;; (use-package company-lsp
+;;   :ensure t
+;;   :defer)
+
+;; Needed by lsp-mode headerline
+;; Install fonts with:
+;; M-x all-the-icons-install-fonts
+(use-package all-the-icons
+  :ensure t)
 
 (use-package lsp-mode
   :ensure t
   ;; uncomment to enable gopls http debug server
   ;; :custom (lsp-gopls-server-args '("-debug" "127.0.0.1:0"))
   :commands (lsp lsp-deferred)
+  :bind ("M-/" . lsp-goto-implementation)
   :hook ((before-save . lsp-format-buffer)
-	 (before-save . lsp-organize-imports)))
+	 (before-save . lsp-organize-imports)
+	 (c-mode . lsp)
+	 (c++-mode . lsp))
+  :config (define-key lsp-mode-map (kbd "C-c l") lsp-command-map))
+
+;; Fancier overlays (like helptext)
+(use-package lsp-ui
+  :ensure t
+  :commands lsp-ui-mode
+  :config (progn
+            ;; disable inline documentation
+            (setq lsp-ui-sideline-enable nil)
+            ;; disable showing docs on hover at the top of the window
+            (setq lsp-ui-doc-enable nil))
+  )
+
+(use-package lsp-treemacs
+  :ensure t)
 
 ;; Hide mode info from modeline when requested
 (use-package delight
   :ensure t
-  :pin melpa-stable)
+  :pin gnu)
 
 (use-package flycheck
   :ensure t
@@ -274,23 +285,32 @@ inserted between the braces between the braces."
 
 (defun my/go-mode-hook ()
   "Customize compile command to run go build."
+  (setq tab-width 4)
   (setq compile-command (concat "echo Building... && go build -v && "
                                 "echo Testing... && go test -v && "
                                 "echo Linters... && golint && go vet")))
 
-(use-package go-guru
-  :ensure t
-  :after go-mode)
+;; Set up before-save hooks to format buffer and add/delete imports.
+(defun my/lsp-go-install-save-hooks ()
+  (add-hook 'before-save-hook #'lsp-format-buffer t t)
+  (add-hook 'before-save-hook #'lsp-organize-imports t t))
+   ;; (before-save . gofmt-before-save) ;; Use LSP hooks instead
 
 (use-package go-mode
   :ensure t
-  :init (setq go-fontify-function-calls nil)
-  ;; :init (setq gofmt-command "goimports")
+  ;; :init (setq go-fontify-function-calls nil)
+  :init (setq gofmt-command "goimports")
   :bind (:map go-mode-map
               ("{" . my/go-electric-brace) ;; Auto-add end-brace
               ("<tab>" . my/indent-or-complete))
-  :hook ((go-mode . lsp-deferred)
-         (go-mode . my/go-mode-hook)))
+  :hook ((go-mode . my/lsp-go-install-save-hooks)
+         (go-mode . my/go-mode-hook)
+         (go-mode . lsp-deferred)))
+
+;; (use-package go-guru
+;;   :ensure t
+;;   :after go-mode)
+
 
 ;; (use-package company-go
 ;;   :ensure t
@@ -400,40 +420,9 @@ inserted between the braces between the braces."
 ;; ;;   (add-hook 'rust-mode-hook 'my-rust-mode-hook)
 ;; ;;   )
 
-
 ;; --------------------------------------------------------
 ;; C / C++
 ;; --------------------------------------------------------
-(defun my/flycheck-rtags-hook ()
-  (flycheck-mode)
-  (flycheck-select-checker 'rtags)
-  (setq-local flycheck-check-syntax-automatically nil) ;; Let rtags trigger the check
-  (setq-local flycheck-highlighting-mode nil) ;; Use rtags own overlay/highlighting
-  )
-
-(use-package rtags
-  ;; :load-path "~/bin/rtags/share/emacs/site-lisp/rtags/"
-  :config
-  (setq rtags-autostart-diagnostics t
-        rtags-completions-enabled t)
-  (rtags-enable-standard-keybindings)
-  (add-hook 'c++-mode-hook #'my/flycheck-rtags-hook)
-;;  (add-to-list 'company-backends 'company-rtags)
-;;  (add-hook 'c-mode-common-hook 'rtags-start-process-unless-running))
-
-  ;; (define-key c-mode-base-map (kbd "M-.")
-  ;;    (function rtags-find-symbol-at-point))
-  ;; (define-key c-mode-base-map (kbd "M-,")
-  ;;    (function rtags-find-references-at-point))
-  ;; (define-key c-mode-base-map (kbd "M-*")
-  ;;    (function rtags-location-stack-back))
-  ;; (define-key c-mode-base-map (kbd "M-/")
-  ;;    (function rtags-find-all-references-at-point))
-  )
-
-(use-package flycheck-rtags
-  :ensure t)
-
 
 (defun my/irony-mode-hook ()
   (define-key irony-mode-map [remap completion-at-point]
@@ -593,7 +582,25 @@ inserted between the braces between the braces."
 	 ("\\Emakefile" . erlang-mode)
          ("elvis\\.config$" . erlang-mode))
   :config
-  (setq erlang-indent-level 4))
+  ;; Default
+  (setq erlang-indent-level 4
+	indent-tabs-mode nil)
+  ;; ;; ninenines
+  ;; (setq erlang-indent-level 8
+  ;;       indent-tabs-mode t)
+  )
+
+;; --------------------------------------------------------
+;; Java
+;; --------------------------------------------------------
+(use-package lsp-java
+  :ensure t
+  :hook (java-mode . lsp-deferred)
+  :config (setq lsp-java-format-enabled nil
+                lsp-java-format-comments-enabled nil
+                lsp-java-format-on-type-enabled nil
+                lsp-java-completion-import-order ["io" "org" "java" "javax" "com"]
+                lsp-enable-file-watchers nil))
 
 ;; --------------------------------------------------------
 ;; Sh
@@ -903,6 +910,13 @@ inserted between the braces between the braces."
     )
 )
 
+(defun file-note ()
+  "Get the current buffer file name and line number at point in kill ring (i.e. pasteable)."
+  (interactive)
+  (kill-new
+   (format "%s:%d:" (buffer-file-name) (save-restriction
+                                        (widen) (line-number-at-pos)))))
+
 (defun file-note-jump ( )
   "This function jumps to a file location found at point in a
    `file-note-buffer'  previously stored with `file-note'.
@@ -1125,6 +1139,12 @@ inserted between the braces between the braces."
 ;;Seems missing in Emacs 25.X
 (global-set-key [(meta *)]        'pop-tag-mark)
 
+;; stop creating those #auto-save# files
+(setq auto-save-default nil)
+;; disable emacs's automatic backup~ file
+(setq make-backup-files nil)
+
+
 ;;----------------------------------------------------------------------------
 ;; Custom settings
 ;;----------------------------------------------------------------------------
@@ -1143,7 +1163,7 @@ inserted between the braces between the braces."
  '(indent-tabs-mode nil)
  '(line-number-mode t)
  '(package-selected-packages
-   '(company-erlang ivy-erlang-complete projectile yasnippet lsp-mode flycheck-rust cargo toml-mode hcl-mode terraform-mode treemacs-projectile treemacs flycheck-gometalinter go-eldoc company-go go-mode fill-column-indicator modern-cpp-font-lock plantuml-mode magit cmake-mode company-flx company-quickhelp company-statistics company irony flycheck-vale flycheck-rtags flycheck markdown-mode groovy-mode yaml-mode dockerfile-mode docker smex evil-matchit color-theme-solarized color-theme exec-path-from-shell use-package))
+   '(all-the-icons vagrant-tramp ## lsp-java lsp-ui company-erlang ivy-erlang-complete projectile yasnippet lsp-mode flycheck-rust cargo toml-mode hcl-mode terraform-mode treemacs-projectile treemacs flycheck-gometalinter go-eldoc company-go go-mode fill-column-indicator modern-cpp-font-lock plantuml-mode cmake-mode company-flx company-quickhelp company-statistics company irony flycheck-vale flycheck markdown-mode groovy-mode yaml-mode dockerfile-mode docker smex evil-matchit color-theme-solarized color-theme exec-path-from-shell use-package))
  '(show-trailing-whitespace t)
  '(solarized-termcolors 256)
  '(tool-bar-mode nil))

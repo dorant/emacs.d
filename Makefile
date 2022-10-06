@@ -1,7 +1,7 @@
 SHELL := /bin/bash
 
 .PHONY: all
-all: setup-generic setup-golang setup-rustlang setup-erlang
+all: setup-generic setup-golang setup-rustlang setup-erlang setup-c-cpp
 
 setup-generic:
 	sudo apt-get install gnutls-bin
@@ -11,6 +11,8 @@ setup-golang:
 	go get -x -u golang.org/x/tools/cmd/goimports
 	go get -x -u golang.org/x/tools/cmd/guru
 	go get -x -u golang.org/x/lint/golint
+	go get -x -u github.com/go-delve/delve/cmd/dlv
+	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(shell go env GOPATH)/bin v1.27.0
 # 	go get -x -u github.com/rogpeppe/godef
 # 	go get -x -u github.com/nsf/gocode
 # 	go get -x -u golang.org/x/tools/cmd/godoc
@@ -37,6 +39,11 @@ setup-erlang:
 	-export KERL_CONFIGURE_OPTIONS="--disable-debug --without-javac --enable-shared-zlib --enable-dynamic-ssl-lib --enable-hipe --enable-smp-support --enable-threads --enable-kernel-poll --with-wx"
 	-kerl build 22.2
 	-kerl install 22.2 ~/erlang/22.2
-	-wget https://github.com/erlang/rebar3/releases/download/3.13.0/rebar3 -O ~/bin/rebar3 && chmod u+x ~/bin/rebar3
+	-wget https://github.com/erlang/rebar3/releases/download/3.19.0/rebar3 -O /tmp/rebar3 && chmod u+x /tmp/rebar3
+	-/tmp/rebar3 local install
 	-source ~/erlang/22.2/activate && dialyzer --build_plt --apps kernel stdlib erts mnesia eunit
 	-echo ". ~/erlang/22.2/activate" >> ~/.profile
+
+setup-c-cpp:
+	@echo '>> Install:'
+	@echo 'sudo apt-get install clang-format clang-tidy clang-tools clang libclang-dev'

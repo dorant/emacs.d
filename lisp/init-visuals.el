@@ -37,6 +37,12 @@
   (customize-set-variable 'frame-background-mode 'dark)
   (load-theme 'solarized t))    ;; Load without confirm
 
+;; (use-package solarized-theme
+;;   :ensure t
+;;   :pin melpa
+;;   :config
+;;   (load-theme 'solarized-dark t))
+
 ;; --------------------------------------------------------
 ;; Powerline - nicer status line
 ;; Issues? Look at:
