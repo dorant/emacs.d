@@ -21,27 +21,8 @@
 ;; solarized theme: sellout/emacs-color-theme-solarized
 ;; Found visual issues with powerline in bbatsov/solarized-emacs
 ;; --------------------------------------------------------
-(use-package color-theme
-  :ensure t
-  :pin melpa
-  :catch (lambda (keyword err)
-           (message (error-message-string err))))
-
-(setq color-theme-libraries nil) ;; Avoid loading nonexisting themes
-
-(use-package color-theme-solarized
-  :load-path "lisp/emacs-color-theme-solarized"
-  ;; :ensure t
-  ;; :pin melpa
-  :config
-  (customize-set-variable 'frame-background-mode 'dark)
-  (load-theme 'solarized t))    ;; Load without confirm
-
-;; (use-package solarized-theme
-;;   :ensure t
-;;   :pin melpa
-;;   :config
-;;   (load-theme 'solarized-dark t))
+(add-to-list 'custom-theme-load-path "~/.emacs.d/lisp/emacs-color-theme-solarized")
+(load-theme 'solarized t)
 
 ;; --------------------------------------------------------
 ;; Powerline - nicer status line
